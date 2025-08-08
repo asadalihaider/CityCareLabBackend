@@ -11,8 +11,8 @@ class TestCategory extends Model
 
     protected $fillable = [
         'title',
+        'slug',
         'icon',
-        'category',
         'is_active',
     ];
 

@@ -14,6 +14,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Str;
 
 class TestCategoryResource extends Resource
 {
@@ -30,7 +31,18 @@ class TestCategoryResource extends Resource
         return $form
             ->schema([
                 TextInput::make('title')
+                    ->hintAction(
+                        Action::make('create-slug')
+                            ->label(__('Create Slug'))
+                            ->icon('heroicon-o-arrow-right')
+                            ->action(fn ($get, $set) => $set('slug', Str::slug($get('title'))))
+                    )
                     ->required(),
+
+                TextInput::make('slug')
+                    ->required()
+                    ->unique(ignoreRecord: true)
+                    ->helperText('Unique Slug identifier (e.g., full-body)'),
 
                 TextInput::make('icon')
                     ->required()
@@ -42,11 +54,6 @@ class TestCategoryResource extends Resource
                             ->openUrlInNewTab(),
                     )
                     ->helperText('MaterialCommunityIcons (e.g., format-list-bulleted)'),
-
-                TextInput::make('category')
-                    ->required()
-                    ->unique(ignoreRecord: true)
-                    ->helperText('Unique category identifier (e.g., full-body)'),
 
                 Toggle::make('is_active')
                     ->label('Active')
@@ -61,9 +68,9 @@ class TestCategoryResource extends Resource
                 TextColumn::make('title')
                     ->searchable(),
 
-                TextColumn::make('icon'),
+                TextColumn::make('slug'),
 
-                TextColumn::make('category'),
+                TextColumn::make('icon'),
 
                 IconColumn::make('is_active')
                     ->label('Active')

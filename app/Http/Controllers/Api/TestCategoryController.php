@@ -12,11 +12,11 @@ class TestCategoryController extends BaseApiController
     {
         return $this->executeWithExceptionHandling(function () use ($request) {
             $query = TestCategory::active()
-                ->select(['id', 'title', 'icon', 'category', 'is_active']);
+                ->select(['id', 'title', 'slug', 'icon', 'is_active']);
 
-            // Add filtering by category if needed
-            if ($request->has('category') && $request->category) {
-                $query->where('category', $request->category);
+            // Add filtering by slug if needed
+            if ($request->has('slug') && $request->slug) {
+                $query->where('slug', $request->slug);
             }
 
             $testCategories = $query->paginate(10);
@@ -25,8 +25,8 @@ class TestCategoryController extends BaseApiController
                 return [
                     'id' => $category->id,
                     'title' => $category->title,
+                    'slug' => $category->slug,
                     'icon' => $category->icon,
-                    'category' => $category->category,
                     'isActive' => $category->is_active,
                 ];
             });
