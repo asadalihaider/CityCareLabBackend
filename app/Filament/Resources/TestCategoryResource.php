@@ -45,7 +45,7 @@ class TestCategoryResource extends Resource
 
                 TextInput::make('category')
                     ->required()
-                    ->unique()
+                    ->unique(ignoreRecord: true)
                     ->helperText('Unique category identifier (e.g., full-body)'),
 
                 Toggle::make('is_active')

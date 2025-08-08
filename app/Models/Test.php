@@ -11,11 +11,10 @@ class Test extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name',
-        'abbreviation',
+        'title',
+        'short_title',
         'duration',
         'type',
-        'categories',
         'includes',
         'price',
         'sale_price',
@@ -24,7 +23,6 @@ class Test extends Model
 
     protected $casts = [
         'type' => TestType::class,
-        'categories' => 'array',
         'includes' => 'array',
         'is_active' => 'boolean',
     ];
@@ -39,12 +37,8 @@ class Test extends Model
         return $query->where('type', $type);
     }
 
-    public function getTestCategories()
+    public function categories()
     {
-        if (empty($this->categories)) {
-            return collect();
-        }
-
-        return TestCategory::whereIn('id', $this->categories)->get();
+        return $this->belongsToMany(TestCategory::class, 'category_test');
     }
 }

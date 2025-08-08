@@ -24,4 +24,9 @@ class TestCategory extends Model
     {
         return $query->where('is_active', true);
     }
+
+    public function tests()
+    {
+        return $this->belongsToMany(Test::class, 'category_test');
+    }
 }

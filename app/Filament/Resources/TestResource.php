@@ -33,11 +33,12 @@ class TestResource extends Resource
     {
         return $form
             ->schema([
-                TextInput::make('name')
+                TextInput::make('title')
                     ->required()
                     ->placeholder('Enter test name'),
 
-                TextInput::make('abbreviation')
+                TextInput::make('short_title')
+                    ->label('Short Title')
                     ->required()
                     ->placeholder('e.g., CBC, LFT'),
 
@@ -69,8 +70,7 @@ class TestResource extends Resource
                     ->label('Test Categories')
                     ->multiple()
                     ->required()
-                    ->options(TestCategory::active()->pluck('title', 'id'))
-                    ->searchable()
+                    ->relationship('categories', 'title')
                     ->placeholder('Select categories'),
 
                 TagsInput::make('includes')
@@ -89,11 +89,12 @@ class TestResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('name')
+                TextColumn::make('title')
                     ->searchable()
                     ->weight('bold'),
 
-                TextColumn::make('abbreviation')
+                TextColumn::make('short_title')
+                    ->label('Short Title')
                     ->searchable(),
 
                 TextColumn::make('type')
@@ -103,7 +104,7 @@ class TestResource extends Resource
                 TextColumn::make('categories')
                     ->label('Categories')
                     ->getStateUsing(function ($record) {
-                        return $record->getTestCategories()->pluck('title')->join(', ');
+                        return $record->categories->pluck('title')->join(', ');
                     })
                     ->limit(50),
 
@@ -130,7 +131,9 @@ class TestResource extends Resource
                     ->options(TestCategory::active()->pluck('title', 'id'))
                     ->query(function (Builder $query, array $data): Builder {
                         if (filled($data['value'])) {
-                            return $query->whereJsonContains('categories', (string) $data['value']);
+                            return $query->whereHas('categories', function ($q) use ($data) {
+                                $q->where('test_category_id', $data['value']);
+                            });
                         }
 
                         return $query;

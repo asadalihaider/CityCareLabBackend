@@ -12,25 +12,24 @@ class TestController extends BaseApiController
     {
         return $this->executeWithExceptionHandling(function () use ($request) {
             $query = Test::active()
-                ->select(['id', 'name', 'abbreviation', 'duration', 'type', 'categories', 'price', 'sale_price', 'includes']);
+                ->with(['categories:id,category'])
+                ->select(['id', 'title', 'short_title', 'duration', 'type', 'price', 'sale_price', 'includes']);
 
             // Add filtering by type if needed
             if ($request->has('type') && $request->type) {
                 $query->byType($request->type);
             }
 
-            $tests = $query->orderBy('name', 'asc')->paginate(50);
+            $tests = $query->orderBy('title', 'asc')->paginate(50);
 
             $tests->getCollection()->transform(function ($test) {
-                $categories = $test->getTestCategories()->pluck('category')->toArray();
-
                 return [
                     'id' => $test->id,
-                    'name' => $test->name,
-                    'abbreviation' => $test->abbreviation,
+                    'title' => $test->title,
+                    'shortTitle' => $test->short_title,
                     'duration' => $test->duration,
                     'type' => $test->type->value,
-                    'categories' => $categories,
+                    'categories' => $test->categories->pluck('category')->toArray(),
                     'price' => $test->price,
                     'salePrice' => $test->sale_price,
                     'includes' => $test->includes ?? [],

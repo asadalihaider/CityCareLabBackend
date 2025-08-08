@@ -10,11 +10,10 @@ return new class extends Migration
     {
         Schema::create('tests', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('abbreviation');
+            $table->string('title');
+            $table->string('short_title');
             $table->string('duration');
             $table->enum('type', ['single', 'package']);
-            $table->json('categories');
             $table->json('includes');
             $table->integer('price');
             $table->integer('sale_price');
