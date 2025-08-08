@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\TestCategoryResource\Pages;
 use App\Models\TestCategory;
+use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
@@ -29,18 +30,22 @@ class TestCategoryResource extends Resource
         return $form
             ->schema([
                 TextInput::make('title')
-                    ->required()
-                    ->maxLength(255),
+                    ->required(),
 
                 TextInput::make('icon')
                     ->required()
-                    ->maxLength(255)
-                    ->helperText('Material Design icon name (e.g., format-list-bulleted)'),
+                    ->hintAction(
+                        Action::make('search')
+                            ->label(__('Search Icon'))
+                            ->icon('heroicon-o-magnifying-glass')
+                            ->url(fn () => 'https://icons.expo.fyi/Index')
+                            ->openUrlInNewTab(),
+                    )
+                    ->helperText('MaterialCommunityIcons (e.g., format-list-bulleted)'),
 
                 TextInput::make('category')
                     ->required()
-                    ->maxLength(255)
-                    ->unique(ignoreRecord: true)
+                    ->unique()
                     ->helperText('Unique category identifier (e.g., full-body)'),
 
                 Toggle::make('is_active')
@@ -54,13 +59,11 @@ class TestCategoryResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('title')
-                    ->searchable()
-                    ->sortable(),
+                    ->searchable(),
 
                 TextColumn::make('icon'),
 
-                TextColumn::make('category')
-                    ->sortable(),
+                TextColumn::make('category'),
 
                 IconColumn::make('is_active')
                     ->label('Active')
