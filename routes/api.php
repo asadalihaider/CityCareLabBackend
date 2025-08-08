@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\LabCenterController;
 use App\Http\Controllers\Api\LabOfferController;
 use App\Http\Controllers\Api\OperatingCityController;
 use App\Http\Controllers\Api\TestCategoryController;
+use App\Http\Controllers\Api\TestController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -19,6 +20,7 @@ Route::get('lab-offers', [LabOfferController::class, 'index']);
 Route::get('operating-cities', [OperatingCityController::class, 'index']);
 Route::get('lab-centers', [LabCenterController::class, 'index']);
 Route::get('test-categories', [TestCategoryController::class, 'index']);
+Route::get('tests', [TestController::class, 'index']);
 
 // Protected routes
 Route::middleware(['auth:sanctum'])->prefix('customer')->group(function () {
