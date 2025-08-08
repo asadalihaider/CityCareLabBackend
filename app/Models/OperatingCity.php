@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class OperatingCity extends Model
 {
@@ -27,5 +28,10 @@ class OperatingCity extends Model
     public function scopeByProvince($query, string $province)
     {
         return $query->where('province', $province);
+    }
+
+    public function labCenters(): HasMany
+    {
+        return $this->hasMany(LabCenter::class);
     }
 }

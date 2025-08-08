@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\CustomerAuthController;
 use App\Http\Controllers\Api\DiscountCardController;
+use App\Http\Controllers\Api\LabCenterController;
 use App\Http\Controllers\Api\LabOfferController;
 use App\Http\Controllers\Api\OperatingCityController;
 use Illuminate\Support\Facades\Route;
@@ -15,6 +16,7 @@ Route::prefix('customer')->group(function () {
 Route::get('discount-cards', [DiscountCardController::class, 'index']);
 Route::get('lab-offers', [LabOfferController::class, 'index']);
 Route::get('operating-cities', [OperatingCityController::class, 'index']);
+Route::get('lab-centers', [LabCenterController::class, 'index']);
 
 // Protected routes
 Route::middleware(['auth:sanctum'])->prefix('customer')->group(function () {
