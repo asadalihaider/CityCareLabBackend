@@ -6,6 +6,7 @@ use App\Filament\Resources\TestResource\Pages;
 use App\Models\Enum\TestType;
 use App\Models\Test;
 use App\Models\TestCategory;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
@@ -49,6 +50,7 @@ class TestResource extends Resource
                 Select::make('type')
                     ->required()
                     ->options(TestType::toOptions())
+                    ->live()
                     ->native(false),
 
                 TextInput::make('price')
@@ -71,13 +73,28 @@ class TestResource extends Resource
                     ->multiple()
                     ->required()
                     ->relationship('categories', 'title')
-                    ->placeholder('Select categories'),
+                    ->placeholder('Select categories')
+                    ->helperText('You can select multiple categories'),
 
                 TagsInput::make('includes')
                     ->placeholder('Add included tests/procedures')
                     ->helperText('Press enter after each item')
-                    ->reorderable()
-                    ->separator(','),
+                    ->reorderable(),
+
+                FileUpload::make('image')
+                    ->label('Image')
+                    ->image()
+                    ->directory('test-images')
+                    ->visibility('public')
+                    ->required(fn ($get) => $get('type') === TestType::PACKAGE->value)
+                    ->helperText('Required for package type tests')
+                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                    ->columnSpanFull(),
+
+                Toggle::make('is_featured')
+                    ->label('Featured')
+                    ->default(false)
+                    ->helperText('Mark this test as featured'),
 
                 Toggle::make('is_active')
                     ->label('Active')
@@ -89,9 +106,12 @@ class TestResource extends Resource
     {
         return $table
             ->columns([
+                IconColumn::make('is_featured')
+                    ->boolean()
+                    ->label('Featured'),
+
                 TextColumn::make('title')
-                    ->searchable()
-                    ->weight('bold'),
+                    ->searchable(),
 
                 TextColumn::make('short_title')
                     ->label('Short Title')
@@ -106,7 +126,7 @@ class TestResource extends Resource
                     ->getStateUsing(function ($record) {
                         return $record->categories->pluck('title')->join(', ');
                     })
-                    ->limit(50),
+                    ->limit(30),
 
                 TextColumn::make('price')
                     ->money('PKR'),
@@ -142,7 +162,12 @@ class TestResource extends Resource
                 Filter::make('is_active')
                     ->label('Active Only')
                     ->query(fn (Builder $query): Builder => $query->where('is_active', true)),
-            ]);
+
+                Filter::make('is_featured')
+                    ->label('Featured Only')
+                    ->query(fn (Builder $query): Builder => $query->where('is_featured', true)),
+            ])
+            ->defaultSort('is_featured', 'desc');
     }
 
     public static function getPages(): array

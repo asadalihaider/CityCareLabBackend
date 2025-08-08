@@ -12,8 +12,8 @@ class TestController extends BaseApiController
     {
         return $this->executeWithExceptionHandling(function () use ($request) {
             $query = Test::active()
-                ->with(['categories:id,category'])
-                ->select(['id', 'title', 'short_title', 'duration', 'type', 'price', 'sale_price', 'includes']);
+                ->with(['categories:id,slug'])
+                ->select(['id', 'title', 'short_title', 'duration', 'type', 'price', 'sale_price', 'includes', 'is_featured', 'image']);
 
             // Add filtering by type if needed
             if ($request->has('type') && $request->type) {
@@ -29,10 +29,12 @@ class TestController extends BaseApiController
                     'shortTitle' => $test->short_title,
                     'duration' => $test->duration,
                     'type' => $test->type->value,
-                    'categories' => $test->categories->pluck('category')->toArray(),
+                    'categories' => $test->categories->pluck('slug')->toArray(),
                     'price' => $test->price,
                     'salePrice' => $test->sale_price,
                     'includes' => $test->includes ?? [],
+                    'isFeatured' => $test->is_featured,
+                    'image' => $test->image ? asset('storage/'.$test->image) : null,
                 ];
             });
 

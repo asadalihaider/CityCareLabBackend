@@ -12,12 +12,14 @@ return new class extends Migration
             $table->id();
             $table->string('title');
             $table->string('short_title');
+            $table->string('image')->nullable();
             $table->string('duration');
             $table->enum('type', ['single', 'package']);
             $table->json('includes');
             $table->integer('price');
             $table->integer('sale_price');
             $table->boolean('is_active')->default(true);
+            $table->boolean('is_featured')->default(false);
             $table->timestamps();
         });
     }

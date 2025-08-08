@@ -19,17 +19,25 @@ class Test extends Model
         'price',
         'sale_price',
         'is_active',
+        'is_featured',
+        'image',
     ];
 
     protected $casts = [
         'type' => TestType::class,
         'includes' => 'array',
         'is_active' => 'boolean',
+        'is_featured' => 'boolean',
     ];
 
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
+    }
+
+    public function scopeFeatured($query)
+    {
+        return $query->where('is_featured', true);
     }
 
     public function scopeByType($query, $type)
