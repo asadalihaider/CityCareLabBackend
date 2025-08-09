@@ -13,9 +13,6 @@ class Customer extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    /**
-     * @var array<int, string>
-     */
     protected $fillable = [
         'name',
         'mobile_number',
@@ -27,17 +24,11 @@ class Customer extends Authenticatable
         'mobile_verified_at',
     ];
 
-    /**
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
@@ -64,5 +55,10 @@ class Customer extends Authenticatable
         return $this->forceFill([
             'mobile_verified_at' => $this->freshTimestamp(),
         ])->save();
+    }
+
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class);
     }
 }

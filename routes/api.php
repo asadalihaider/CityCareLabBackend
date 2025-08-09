@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\CustomerAuthController;
 use App\Http\Controllers\Api\DiscountCardController;
 use App\Http\Controllers\Api\LabCenterController;
@@ -27,4 +28,6 @@ Route::middleware(['auth:sanctum'])->prefix('customer')->group(function () {
     Route::get('profile', [CustomerAuthController::class, 'profile']);
     Route::post('logout', [CustomerAuthController::class, 'logout']);
     Route::post('refresh', [CustomerAuthController::class, 'refresh']);
+
+    Route::apiResource('bookings', BookingController::class)->except(['destroy']);
 });
