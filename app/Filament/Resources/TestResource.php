@@ -40,8 +40,44 @@ class TestResource extends Resource
 
                 TextInput::make('short_title')
                     ->label('Short Title')
-                    ->required()
                     ->placeholder('e.g., CBC, LFT'),
+
+                Select::make('categories')
+                    ->label('Test Categories')
+                    ->multiple()
+                    ->relationship('categories', 'title')
+                    ->placeholder('Select categories')
+                    ->helperText('You can select multiple categories'),
+
+                Select::make('specimen')
+                    ->required()
+                    ->options([
+                        '24 hrs Urine Sample',
+                        '3-5 cc Clotted Blood or Serum',
+                        '5 ml Blood in CS Bottle',
+                        'Biopsy Sample',
+                        'Body Stone',
+                        'Brest Milk',
+                        'CLOT/plain 3 ml',
+                        'CLOT/plain/EDTA/Fluride 3 ml',
+                        'CP /EDTA 3 ml',
+                        'CSF Sample',
+                        'FFPs',
+                        'Fluid',
+                        'Manual Method',
+                        'Nasal Swab',
+                        'PAP Smear',
+                        'PT/citrate 1.8 ml',
+                        'PUS Swab',
+                        'Semen Sample',
+                        'Slides',
+                        'Sputam Sample',
+                        'Sputum Sample',
+                        'Stool Sample',
+                        'Urine Sample',
+                    ])
+                    ->searchable()
+                    ->native(false),
 
                 TextInput::make('duration')
                     ->required()
@@ -62,19 +98,10 @@ class TestResource extends Resource
 
                 TextInput::make('sale_price')
                     ->label('Sale Price')
-                    ->required()
                     ->numeric()
                     ->minValue(0)
                     ->prefixIcon('heroicon-o-currency-rupee')
                     ->placeholder('Sale price in rupees e.g 1400'),
-
-                Select::make('categories')
-                    ->label('Test Categories')
-                    ->multiple()
-                    ->required()
-                    ->relationship('categories', 'title')
-                    ->placeholder('Select categories')
-                    ->helperText('You can select multiple categories'),
 
                 TagsInput::make('includes')
                     ->placeholder('Add included tests/procedures')
@@ -88,8 +115,7 @@ class TestResource extends Resource
                     ->visibility('public')
                     ->required(fn ($get) => $get('type') === TestType::PACKAGE->value)
                     ->helperText('Required for package type tests')
-                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
-                    ->columnSpanFull(),
+                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp']),
 
                 Toggle::make('is_featured')
                     ->label('Featured')

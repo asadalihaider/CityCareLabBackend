@@ -14,6 +14,7 @@ class Test extends Model
         'title',
         'short_title',
         'duration',
+        'specimen',
         'type',
         'includes',
         'price',
