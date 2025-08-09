@@ -19,9 +19,9 @@ return new class extends Migration
             $table->text('address');
             $table->enum('booking_type', BookingType::values())->default(BookingType::TEST->value);
             $table->text('purpose')->nullable();
-            $table->decimal('latitude', 10, 8)->nullable();
-            $table->decimal('longitude', 11, 8)->nullable();
-            $table->timestamp('booking_date')->nullable();
+            $table->decimal('latitude', 10, 8);
+            $table->decimal('longitude', 11, 8);
+            $table->timestamp('booking_date')->default(now());
             $table->timestamps();
         });
     }

@@ -2,8 +2,6 @@
 
 namespace App\Models\Enum;
 
-use Filament\Support\Colors\Color;
-
 enum BookingStatus: string
 {
     use BaseEnum;
@@ -29,16 +27,17 @@ enum BookingStatus: string
         };
     }
 
-    public function color(): string
+    public static function getOptionsForBookingType(BookingType $bookingType): array
     {
-        return match ($this) {
-            self::WAITING => 'gray',
-            self::VERIFIED => Color::Lime,
-            self::ON_THE_WAY => 'primary',
-            self::SAMPLE_COLLECTED => Color::Teal,
-            self::IN_PROCESS => Color::Violet,
-            self::COMPLETED => 'success',
-            self::DECLINED => 'danger',
+        return match ($bookingType) {
+            BookingType::CONSULTATION => collect([
+                self::WAITING,
+                self::VERIFIED,
+                self::COMPLETED,
+                self::DECLINED,
+            ])->mapWithKeys(fn ($status) => [$status->value => $status->label()])->toArray(),
+
+            BookingType::TEST => self::toOptions(),
         };
     }
 }
