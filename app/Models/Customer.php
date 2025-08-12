@@ -16,12 +16,14 @@ class Customer extends Authenticatable
     protected $fillable = [
         'name',
         'mobile_number',
+        'email',
         'password',
         'status',
         'location',
         'date_of_birth',
         'gender',
         'mobile_verified_at',
+        'email_verified_at',
     ];
 
     protected $hidden = [
@@ -33,6 +35,7 @@ class Customer extends Authenticatable
     {
         return [
             'mobile_verified_at' => 'datetime',
+            'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'date_of_birth' => 'date',
             'status' => CustomerStatus::class,
@@ -54,6 +57,18 @@ class Customer extends Authenticatable
     {
         return $this->forceFill([
             'mobile_verified_at' => $this->freshTimestamp(),
+        ])->save();
+    }
+
+    public function isEmailVerified(): bool
+    {
+        return ! is_null($this->email_verified_at);
+    }
+
+    public function markEmailAsVerified(): bool
+    {
+        return $this->forceFill([
+            'email_verified_at' => $this->freshTimestamp(),
         ])->save();
     }
 

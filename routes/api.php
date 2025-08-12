@@ -26,6 +26,7 @@ Route::get('tests', [TestController::class, 'index']);
 // Protected routes
 Route::middleware(['auth:sanctum'])->prefix('customer')->group(function () {
     Route::get('profile', [CustomerAuthController::class, 'profile']);
+    Route::put('profile', [CustomerAuthController::class, 'updateProfile']);
     Route::post('logout', [CustomerAuthController::class, 'logout']);
     Route::post('refresh', [CustomerAuthController::class, 'refresh']);
 

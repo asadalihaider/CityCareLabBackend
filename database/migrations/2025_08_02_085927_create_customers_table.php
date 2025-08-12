@@ -15,6 +15,8 @@ return new class extends Migration
             $table->string('name');
             $table->string('mobile_number')->unique();
             $table->timestamp('mobile_verified_at')->nullable();
+            $table->string('email')->unique()->nullable();
+            $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->enum('status', CustomerStatus::values())->default(CustomerStatus::ACTIVE->value);
             $table->text('location')->nullable();
