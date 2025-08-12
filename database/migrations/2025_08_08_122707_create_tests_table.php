@@ -13,15 +13,16 @@ return new class extends Migration
             $table->id();
             $table->string('title');
             $table->string('short_title')->nullable();
-            $table->string('image')->nullable();
             $table->string('duration');
+            $table->integer('price');
             $table->string('specimen')->nullable();
             $table->enum('type', TestType::values())->default(TestType::SINGLE->value);
             $table->json('includes');
-            $table->integer('price');
-            $table->integer('sale_price')->nullable();
+            $table->json('relevant_symptoms');
+            $table->json('relevant_diseases');
             $table->boolean('is_active')->default(true);
             $table->boolean('is_featured')->default(false);
+            $table->string('image')->nullable();
             $table->timestamps();
         });
     }

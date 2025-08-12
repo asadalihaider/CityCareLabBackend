@@ -35,21 +35,40 @@ class TestResource extends Resource
         return $form
             ->schema([
                 TextInput::make('title')
+                    ->label(__('Title'))
                     ->required()
                     ->placeholder('Enter test name'),
 
                 TextInput::make('short_title')
-                    ->label('Short Title')
+                    ->label(__('Short Title'))
                     ->placeholder('e.g., CBC, LFT'),
 
-                Select::make('categories')
-                    ->label('Test Categories')
-                    ->multiple()
-                    ->relationship('categories', 'title')
-                    ->placeholder('Select categories')
-                    ->helperText('You can select multiple categories'),
+                Select::make('duration')
+                    ->label(__('Duration'))
+                    ->required()
+                    ->options([
+                        '9 hours',
+                        '24 hours',
+                        '2 days',
+                        '3 days',
+                        'one week',
+                        'two weeks',
+                        'three weeks',
+                    ])
+                    ->placeholder('Select duration')
+                    ->native(false)
+                    ->searchable(),
+
+                TextInput::make('price')
+                    ->label(__('Price'))
+                    ->required()
+                    ->numeric()
+                    ->minValue(0)
+                    ->prefixIcon('heroicon-o-currency-rupee')
+                    ->placeholder('Price in rupees e.g 1400'),
 
                 Select::make('specimen')
+                    ->label(__('Specimen'))
                     ->required()
                     ->options([
                         '24 hrs Urine Sample',
@@ -79,51 +98,55 @@ class TestResource extends Resource
                     ->searchable()
                     ->native(false),
 
-                TextInput::make('duration')
-                    ->required()
-                    ->placeholder('e.g., Reports within 9 hours'),
-
                 Select::make('type')
+                    ->label(__('Test Type'))
                     ->required()
                     ->options(TestType::toOptions())
-                    ->live()
                     ->native(false),
 
-                TextInput::make('price')
-                    ->required()
-                    ->numeric()
-                    ->minValue(0)
-                    ->prefixIcon('heroicon-o-currency-rupee')
-                    ->placeholder('Price in rupees e.g 1400'),
-
-                TextInput::make('sale_price')
-                    ->label('Sale Price')
-                    ->numeric()
-                    ->minValue(0)
-                    ->prefixIcon('heroicon-o-currency-rupee')
-                    ->placeholder('Sale price in rupees e.g 1400'),
+                Select::make('categories')
+                    ->label(__('Test Categories'))
+                    ->multiple()
+                    ->relationship('categories', 'title')
+                    ->placeholder('Select categories')
+                    ->helperText('You can select multiple categories'),
 
                 TagsInput::make('includes')
+                    ->label(__('Includes'))
                     ->placeholder('Add included tests/procedures')
                     ->helperText('Press enter after each item')
                     ->reorderable(),
 
+                TagsInput::make('relevant_symptoms')
+                    ->label(__('Relevant Symptoms'))
+                    ->placeholder('Add relevant symptoms')
+                    ->helperText('Press enter after each item')
+                    ->reorderable(),
+
+                TagsInput::make('relevant_diseases')
+                    ->label(__('Relevant Diseases'))
+                    ->placeholder('Add relevant diseases')
+                    ->helperText('Press enter after each item')
+                    ->reorderable(),
+
+                Toggle::make('is_featured')
+                    ->label(__('Featured'))
+                    ->default(false)
+                    ->live()
+                    ->helperText('Featured tests will be highlighted on the website/mobile app'),
+
                 FileUpload::make('image')
-                    ->label('Image')
+                    ->label(__('Image'))
                     ->image()
                     ->directory('test-images')
                     ->visibility('public')
-                    ->required(fn ($get) => $get('type') === TestType::PACKAGE->value)
-                    ->helperText('Required for package type tests')
+                    ->visible(fn ($get) => $get('is_featured') === true)
+                    ->required(fn ($get) => $get('is_featured') === true)
+                    ->helperText('Required for featured tests')
                     ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp']),
 
-                Toggle::make('is_featured')
-                    ->label('Featured')
-                    ->default(false)
-                    ->helperText('Mark this test as featured'),
-
                 Toggle::make('is_active')
-                    ->label('Active')
+                    ->label(__('Active'))
                     ->default(true),
             ]);
     }
@@ -133,47 +156,48 @@ class TestResource extends Resource
         return $table
             ->columns([
                 IconColumn::make('is_featured')
-                    ->boolean()
-                    ->label('Featured'),
+                    ->label(__('Featured'))
+                    ->boolean(),
 
                 TextColumn::make('title')
+                    ->label(__('Test Name'))
                     ->searchable(),
 
                 TextColumn::make('short_title')
-                    ->label('Short Title')
+                    ->label(__('Short Title'))
                     ->searchable(),
 
                 TextColumn::make('type')
+                    ->label(__('Test Type'))
                     ->badge()
                     ->color(fn ($record): string => $record->type->color()),
 
                 TextColumn::make('categories')
-                    ->label('Categories')
+                    ->label(__('Relevant Categories'))
                     ->getStateUsing(function ($record) {
                         return $record->categories->pluck('title')->join(', ');
                     })
                     ->limit(30),
 
                 TextColumn::make('price')
-                    ->money('PKR'),
-
-                TextColumn::make('sale_price')
-                    ->label('Sale Price')
+                    ->label(__('Price'))
                     ->money('PKR'),
 
                 TextColumn::make('duration')
+                    ->label(__('Duration'))
                     ->limit(30),
 
                 IconColumn::make('is_active')
-                    ->boolean()
-                    ->label('Active'),
+                    ->label(__('Active'))
+                    ->boolean(),
             ])
             ->filters([
                 SelectFilter::make('type')
+                    ->label(__('Test Type'))
                     ->options(TestType::toOptions()),
 
                 SelectFilter::make('categories')
-                    ->label('Test Category')
+                    ->label(__('Test Category'))
                     ->options(TestCategory::active()->pluck('title', 'id'))
                     ->query(function (Builder $query, array $data): Builder {
                         if (filled($data['value'])) {
@@ -186,11 +210,11 @@ class TestResource extends Resource
                     }),
 
                 Filter::make('is_active')
-                    ->label('Active Only')
+                    ->label(__('Active Only'))
                     ->query(fn (Builder $query): Builder => $query->where('is_active', true)),
 
                 Filter::make('is_featured')
-                    ->label('Featured Only')
+                    ->label(__('Featured Only'))
                     ->query(fn (Builder $query): Builder => $query->where('is_featured', true)),
             ])
             ->defaultSort('is_featured', 'desc');

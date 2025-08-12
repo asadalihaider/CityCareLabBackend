@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Enum\TestType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Test extends Model
 {
@@ -18,7 +19,8 @@ class Test extends Model
         'type',
         'includes',
         'price',
-        'sale_price',
+        'relevant_diseases',
+        'relevant_symptoms',
         'is_active',
         'is_featured',
         'image',
@@ -27,6 +29,8 @@ class Test extends Model
     protected $casts = [
         'type' => TestType::class,
         'includes' => 'array',
+        'relevant_diseases' => 'array',
+        'relevant_symptoms' => 'array',
         'is_active' => 'boolean',
         'is_featured' => 'boolean',
     ];
@@ -46,7 +50,7 @@ class Test extends Model
         return $query->where('type', $type);
     }
 
-    public function categories()
+    public function categories(): BelongsToMany
     {
         return $this->belongsToMany(TestCategory::class, 'category_test');
     }
