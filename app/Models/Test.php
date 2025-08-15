@@ -18,7 +18,9 @@ class Test extends Model
         'specimen',
         'type',
         'includes',
+        'prerequisites',
         'price',
+        'discount',
         'relevant_diseases',
         'relevant_symptoms',
         'is_active',
@@ -29,6 +31,7 @@ class Test extends Model
     protected $casts = [
         'type' => TestType::class,
         'includes' => 'array',
+        'prerequisites' => 'array',
         'relevant_diseases' => 'array',
         'relevant_symptoms' => 'array',
         'is_active' => 'boolean',

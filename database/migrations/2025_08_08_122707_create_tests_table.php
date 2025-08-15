@@ -15,9 +15,11 @@ return new class extends Migration
             $table->string('short_title')->nullable();
             $table->string('duration');
             $table->integer('price');
+            $table->integer('discount')->default(0);
             $table->string('specimen')->nullable();
             $table->enum('type', TestType::values())->default(TestType::SINGLE->value);
             $table->json('includes');
+            $table->json('prerequisites');
             $table->json('relevant_symptoms');
             $table->json('relevant_diseases');
             $table->boolean('is_active')->default(true);

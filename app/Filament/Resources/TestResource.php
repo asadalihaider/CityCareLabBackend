@@ -43,22 +43,6 @@ class TestResource extends Resource
                     ->label(__('Short Title'))
                     ->placeholder('e.g., CBC, LFT'),
 
-                Select::make('duration')
-                    ->label(__('Duration'))
-                    ->required()
-                    ->options([
-                        '9 hours',
-                        '24 hours',
-                        '2 days',
-                        '3 days',
-                        'one week',
-                        'two weeks',
-                        'three weeks',
-                    ])
-                    ->placeholder('Select duration')
-                    ->native(false)
-                    ->searchable(),
-
                 TextInput::make('price')
                     ->label(__('Price'))
                     ->required()
@@ -66,6 +50,15 @@ class TestResource extends Resource
                     ->minValue(0)
                     ->prefixIcon('heroicon-o-currency-rupee')
                     ->placeholder('Price in rupees e.g 1400'),
+
+                TextInput::make('discount')
+                    ->label(__('Discount'))
+                    ->numeric()
+                    ->minValue(0)
+                    ->maxValue(100)
+                    ->suffix('%')
+                    ->placeholder('Add discount in percentage e.g 20')
+                    ->required(fn ($get) => $get('is_featured') === true),
 
                 Select::make('specimen')
                     ->label(__('Specimen'))
@@ -98,6 +91,22 @@ class TestResource extends Resource
                     ->searchable()
                     ->native(false),
 
+                Select::make('duration')
+                    ->label(__('Duration'))
+                    ->required()
+                    ->options([
+                        '9 hours',
+                        '24 hours',
+                        '2 days',
+                        '3 days',
+                        'one week',
+                        'two weeks',
+                        'three weeks',
+                    ])
+                    ->placeholder('Select duration')
+                    ->native(false)
+                    ->searchable(),
+
                 Select::make('type')
                     ->label(__('Test Type'))
                     ->required()
@@ -108,8 +117,13 @@ class TestResource extends Resource
                     ->label(__('Test Categories'))
                     ->multiple()
                     ->relationship('categories', 'title')
-                    ->placeholder('Select categories')
-                    ->helperText('You can select multiple categories'),
+                    ->placeholder('Select categories'),
+
+                TagsInput::make('prerequisites')
+                    ->label(__('Prerequisites'))
+                    ->placeholder('Add prerequisites e.g 8 hours fasting')
+                    ->helperText('Press enter after each item')
+                    ->reorderable(),
 
                 TagsInput::make('includes')
                     ->label(__('Includes'))
