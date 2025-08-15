@@ -14,6 +14,10 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('customer')->group(function () {
     Route::post('register', [CustomerAuthController::class, 'register']);
     Route::post('login', [CustomerAuthController::class, 'login']);
+    Route::post('verify-otp', [CustomerAuthController::class, 'verifyOtp']);
+    Route::post('resend-otp', [CustomerAuthController::class, 'resendOtp']);
+    Route::post('forgot-password', [CustomerAuthController::class, 'forgotPassword']);
+    Route::post('reset-password', [CustomerAuthController::class, 'resetPassword']);
 });
 
 Route::get('discount-cards', [DiscountCardController::class, 'index']);
@@ -29,6 +33,7 @@ Route::middleware(['auth:sanctum'])->prefix('customer')->group(function () {
     Route::put('profile', [CustomerAuthController::class, 'updateProfile']);
     Route::post('logout', [CustomerAuthController::class, 'logout']);
     Route::post('refresh', [CustomerAuthController::class, 'refresh']);
+    Route::post('send-verification-otp', [CustomerAuthController::class, 'sendVerificationOtp']);
 
     Route::apiResource('bookings', BookingController::class)->except(['destroy']);
 });

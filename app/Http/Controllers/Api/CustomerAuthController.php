@@ -2,21 +2,35 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Requests\Customer\ForgotPasswordRequest;
 use App\Http\Requests\Customer\LoginRequest;
 use App\Http\Requests\Customer\RegistrationRequest;
-use App\Http\Requests\Customer\UpdateProfileRequest;
+use App\Http\Requests\Customer\ResetPasswordRequest;
+use App\Http\Requests\Customer\VerifyOtpRequest;
+use App\Http\Requests\UpdateProfileRequest;
 use App\Models\Customer;
 use App\Models\Enum\CustomerStatus;
+use App\Models\Enum\OtpType;
+use App\Models\Otp;
+use App\Services\OtpService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class CustomerAuthController extends BaseApiController
 {
+    protected OtpService $otpService;
+
+    public function __construct(OtpService $otpService)
+    {
+        $this->otpService = $otpService;
+    }
     public function register(RegistrationRequest $request): JsonResponse
     {
         return $this->executeWithExceptionHandling(function () use ($request) {
+            // Create customer account (no OTP sending here)
             $customer = Customer::create([
                 'name' => $request->name,
                 'mobile_number' => $request->mobile_number,
@@ -28,8 +42,6 @@ class CustomerAuthController extends BaseApiController
                 'status' => CustomerStatus::ACTIVE,
             ]);
 
-            $token = $customer->createToken('mobile-app')->plainTextToken;
-
             $data = [
                 'id' => $customer->id,
                 'name' => $customer->name,
@@ -37,13 +49,12 @@ class CustomerAuthController extends BaseApiController
                 'email' => $customer->email,
                 'location' => $customer->location,
                 'status' => $customer->status,
-                'mobile_verified' => $customer->isMobileVerified(),
+                'phone_verified' => $customer->isMobileVerified(),
                 'email_verified' => $customer->isEmailVerified(),
-                'token' => $token,
-                'token_type' => 'Bearer',
+                'message' => 'Registration successful. Please verify your phone number to login.',
             ];
 
-            return $this->createdResponse($data, 'Customer registered successfully');
+            return $this->createdResponse($data, 'Customer registered successfully. Please verify your phone number.');
         }, 'Registration failed');
     }
 
@@ -65,6 +76,12 @@ class CustomerAuthController extends BaseApiController
                 return $this->forbiddenResponse('Your account is currently inactive. Please contact support.');
             }
 
+            // Check if mobile number is verified for login via mobile number
+            if ($loginField === 'mobile_number' && !$customer->isMobileVerified()) {
+                return $this->errorResponse('Your phone number is not verified. Please verify your phone number first.', 403);
+            }
+
+            // Delete existing tokens
             $customer->tokens()->delete();
 
             $token = $customer->createToken('mobile-app')->plainTextToken;
@@ -76,7 +93,7 @@ class CustomerAuthController extends BaseApiController
                 'email' => $customer->email,
                 'location' => $customer->location,
                 'status' => $customer->status,
-                'mobile_verified' => $customer->isMobileVerified(),
+                'phone_verified' => $customer->isMobileVerified(),
                 'email_verified' => $customer->isEmailVerified(),
                 'token' => $token,
                 'token_type' => 'Bearer',
@@ -163,5 +180,169 @@ class CustomerAuthController extends BaseApiController
 
             return $this->successResponse($data, 'Token refreshed successfully');
         }, 'Token refresh failed');
+    }
+
+    public function verifyOtp(VerifyOtpRequest $request): JsonResponse
+    {
+        return $this->executeWithExceptionHandling(function () use ($request) {
+            $otpType = OtpType::from($request->type);
+            
+            $result = $this->otpService->verifyOtp(
+                $request->mobile_number, 
+                $request->otp, 
+                $otpType
+            );
+
+            if (!$result['success']) {
+                return $this->errorResponse($result['message'], 400);
+            }
+
+            $customer = Customer::where('mobile_number', $request->mobile_number)->first();
+
+            if (!$customer) {
+                return $this->notFoundResponse('Customer not found');
+            }
+
+            // Handle different verification types
+            switch ($otpType) {
+                case OtpType::MOBILE_VERIFICATION:
+                    $customer->markMobileAsVerified();
+                    return $this->successResponse(null, 'Phone number verified successfully. You can now login.');
+
+                case OtpType::EMAIL_VERIFICATION:
+                    $customer->markEmailAsVerified();
+                    return $this->successResponse(null, 'Email verified successfully.');
+
+                case OtpType::FORGOT_PASSWORD:
+                    return $this->successResponse([
+                        'mobile_number' => $customer->mobile_number,
+                        'otp_verified' => true,
+                        'message' => 'OTP verified. You can now reset your password.'
+                    ], 'OTP verified successfully');
+
+                default:
+                    return $this->errorResponse('Invalid OTP type', 400);
+            }
+        }, 'OTP verification failed');
+    }
+
+    public function resendOtp(Request $request): JsonResponse
+    {
+        return $this->executeWithExceptionHandling(function () use ($request) {
+            $request->validate([
+                'mobile_number' => [
+                    'required',
+                    'string',
+                    'regex:/^((\+92)?(0092)?(92)?(0)?)(3)([0-9]{9})$/',
+                ],
+                'type' => ['required', Rule::enum(OtpType::class)],
+            ]);
+
+            $otpType = OtpType::from($request->type);
+
+            // Check if customer exists (phone number must be in database)
+            $customer = Customer::where('mobile_number', $request->mobile_number)->first();
+            if (!$customer) {
+                return $this->notFoundResponse('Customer not found. Please register first.');
+            }
+
+            $otp = $this->otpService->createAndSendOtp($request->mobile_number, $otpType);
+
+            if (!$otp) {
+                return $this->errorResponse('Failed to send OTP. Please try again.');
+            }
+
+            return $this->successResponse(null, 'OTP sent successfully');
+        }, 'Failed to resend OTP');
+    }
+
+    public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
+    {
+        return $this->executeWithExceptionHandling(function () use ($request) {
+            $customer = Customer::where('mobile_number', $request->mobile_number)->first();
+
+            if (!$customer) {
+                return $this->notFoundResponse('No account found with this mobile number.');
+            }
+
+            $otp = $this->otpService->createAndSendOtp(
+                $request->mobile_number, 
+                OtpType::FORGOT_PASSWORD
+            );
+
+            if (!$otp) {
+                return $this->errorResponse('Failed to send reset OTP. Please try again.');
+            }
+
+            return $this->successResponse(null, 'Password reset OTP sent to your mobile number.');
+        }, 'Failed to initiate password reset');
+    }
+
+    public function resetPassword(ResetPasswordRequest $request): JsonResponse
+    {
+        return $this->executeWithExceptionHandling(function () use ($request) {
+            // First verify the OTP
+            $result = $this->otpService->verifyOtp(
+                $request->mobile_number, 
+                $request->otp, 
+                OtpType::FORGOT_PASSWORD
+            );
+
+            if (!$result['success']) {
+                return $this->errorResponse($result['message'], 400);
+            }
+
+            $customer = Customer::where('mobile_number', $request->mobile_number)->first();
+
+            if (!$customer) {
+                return $this->notFoundResponse('Customer not found');
+            }
+
+            // Update password
+            $customer->update([
+                'password' => Hash::make($request->password)
+            ]);
+
+            // Logout all existing sessions
+            $customer->tokens()->delete();
+
+            return $this->successResponse(null, 'Password reset successfully. Please login with your new password.');
+        }, 'Password reset failed');
+    }
+
+    public function sendVerificationOtp(Request $request): JsonResponse
+    {
+        return $this->executeWithExceptionHandling(function () use ($request) {
+            $customer = $request->user();
+            
+            $request->validate([
+                'type' => ['required', Rule::enum(OtpType::class)],
+            ]);
+
+            $otpType = OtpType::from($request->type);
+            
+            // Determine which identifier to use
+            $identifier = match ($otpType) {
+                OtpType::MOBILE_VERIFICATION => $customer->mobile_number,
+                OtpType::EMAIL_VERIFICATION => $customer->email,
+                default => throw new \InvalidArgumentException('Invalid OTP type for verification')
+            };
+
+            if (!$identifier) {
+                return $this->errorResponse(
+                    $otpType === OtpType::EMAIL_VERIFICATION 
+                        ? 'No email address on file' 
+                        : 'No mobile number on file'
+                );
+            }
+
+            $otp = $this->otpService->createAndSendOtp($identifier, $otpType);
+
+            if (!$otp) {
+                return $this->errorResponse('Failed to send OTP. Please try again.');
+            }
+
+            return $this->successResponse(null, 'OTP sent successfully');
+        }, 'Failed to send verification OTP');
     }
 }
