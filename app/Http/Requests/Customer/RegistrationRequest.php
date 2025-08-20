@@ -25,7 +25,7 @@ class RegistrationRequest extends FormRequest
             ],
             'email' => ['nullable', 'string', 'email', 'max:255', 'unique:customers,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'location' => ['nullable', 'string', 'max:255'],
+            'location_id' => ['nullable', 'integer', 'exists:operating_cities,id'],
             'date_of_birth' => ['nullable', 'date', 'before:today'],
             'gender' => ['nullable', Rule::enum(Gender::class)],
         ];

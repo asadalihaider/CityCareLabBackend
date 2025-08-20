@@ -19,7 +19,7 @@ class Customer extends Authenticatable
         'email',
         'password',
         'status',
-        'location',
+        'location_id',
         'date_of_birth',
         'gender',
         'mobile_verified_at',
@@ -75,5 +75,10 @@ class Customer extends Authenticatable
     public function bookings()
     {
         return $this->hasMany(Booking::class);
+    }
+
+    public function location()
+    {
+        return $this->belongsTo(OperatingCity::class, 'location_id');
     }
 }

@@ -34,4 +34,9 @@ class OperatingCity extends Model
     {
         return $this->hasMany(LabCenter::class);
     }
+
+    public function customers(): HasMany
+    {
+        return $this->hasMany(Customer::class, 'location_id');
+    }
 }

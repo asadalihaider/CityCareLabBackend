@@ -27,7 +27,7 @@ class UpdateProfileRequest extends FormRequest
                 'max:255',
                 Rule::unique('customers', 'email')->ignore($customerId),
             ],
-            'location' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'location_id' => ['sometimes', 'nullable', 'integer', 'exists:operating_cities,id'],
             'date_of_birth' => ['sometimes', 'nullable', 'date', 'before:today'],
             'gender' => ['sometimes', 'nullable', Rule::enum(Gender::class)],
         ];

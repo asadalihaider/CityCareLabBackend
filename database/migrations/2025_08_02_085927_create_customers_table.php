@@ -19,7 +19,7 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->enum('status', CustomerStatus::values())->default(CustomerStatus::ACTIVE->value);
-            $table->text('location')->nullable();
+            $table->unsignedBigInteger('location_id')->nullable();
             $table->date('date_of_birth')->nullable();
             $table->enum('gender', Gender::values())->nullable();
             $table->rememberToken();

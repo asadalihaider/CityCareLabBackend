@@ -36,18 +36,25 @@ class CustomerAuthController extends BaseApiController
                 'mobile_number' => $request->mobile_number,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
-                'location' => $request->location,
+                'location_id' => $request->location_id,
                 'date_of_birth' => $request->date_of_birth,
                 'gender' => $request->gender,
                 'status' => CustomerStatus::ACTIVE,
             ]);
+
+            // Load the location relationship
+            $customer->load('location');
 
             $data = [
                 'id' => $customer->id,
                 'name' => $customer->name,
                 'mobile_number' => $customer->mobile_number,
                 'email' => $customer->email,
-                'location' => $customer->location,
+                'location' => $customer->location ? [
+                    'id' => $customer->location->id,
+                    'name' => $customer->location->name,
+                    'province' => $customer->location->province
+                ] : null,
                 'status' => $customer->status,
                 'phone_verified' => $customer->isMobileVerified(),
                 'email_verified' => $customer->isEmailVerified(),
@@ -64,7 +71,7 @@ class CustomerAuthController extends BaseApiController
             $login = $request->login;
             $loginField = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'mobile_number';
 
-            $customer = Customer::where($loginField, $login)->first();
+            $customer = Customer::with('location')->where($loginField, $login)->first();
 
             if (! $customer || ! Hash::check($request->password, $customer->password)) {
                 throw ValidationException::withMessages([
@@ -91,7 +98,11 @@ class CustomerAuthController extends BaseApiController
                 'name' => $customer->name,
                 'mobile_number' => $customer->mobile_number,
                 'email' => $customer->email,
-                'location' => $customer->location,
+                'location' => $customer->location ? [
+                    'id' => $customer->location->id,
+                    'name' => $customer->location->name,
+                    'province' => $customer->location->province
+                ] : null,
                 'status' => $customer->status,
                 'phone_verified' => $customer->isMobileVerified(),
                 'email_verified' => $customer->isEmailVerified(),
@@ -107,13 +118,18 @@ class CustomerAuthController extends BaseApiController
     {
         return $this->executeWithExceptionHandling(function () use ($request) {
             $customer = $request->user();
+            $customer->load('location');
 
             $data = [
                 'id' => $customer->id,
                 'name' => $customer->name,
                 'mobile_number' => $customer->mobile_number,
                 'email' => $customer->email,
-                'location' => $customer->location,
+                'location' => $customer->location ? [
+                    'id' => $customer->location->id,
+                    'name' => $customer->location->name,
+                    'province' => $customer->location->province
+                ] : null,
                 'date_of_birth' => $customer->date_of_birth,
                 'gender' => $customer->gender,
                 'status' => $customer->status,
@@ -137,13 +153,18 @@ class CustomerAuthController extends BaseApiController
             }
 
             $customer->update($updateData);
+            $customer->load('location');
 
             $data = [
                 'id' => $customer->id,
                 'name' => $customer->name,
                 'mobile_number' => $customer->mobile_number,
                 'email' => $customer->email,
-                'location' => $customer->location,
+                'location' => $customer->location ? [
+                    'id' => $customer->location->id,
+                    'name' => $customer->location->name,
+                    'province' => $customer->location->province
+                ] : null,
                 'date_of_birth' => $customer->date_of_birth,
                 'gender' => $customer->gender,
                 'status' => $customer->status,
@@ -186,10 +207,10 @@ class CustomerAuthController extends BaseApiController
     {
         return $this->executeWithExceptionHandling(function () use ($request) {
             $otpType = OtpType::from($request->type);
-            
+
             $result = $this->otpService->verifyOtp(
-                $request->mobile_number, 
-                $request->otp, 
+                $request->mobile_number,
+                $request->otp,
                 $otpType
             );
 
@@ -266,7 +287,7 @@ class CustomerAuthController extends BaseApiController
             }
 
             $otp = $this->otpService->createAndSendOtp(
-                $request->mobile_number, 
+                $request->mobile_number,
                 OtpType::FORGOT_PASSWORD
             );
 
@@ -283,8 +304,8 @@ class CustomerAuthController extends BaseApiController
         return $this->executeWithExceptionHandling(function () use ($request) {
             // First verify the OTP
             $result = $this->otpService->verifyOtp(
-                $request->mobile_number, 
-                $request->otp, 
+                $request->mobile_number,
+                $request->otp,
                 OtpType::FORGOT_PASSWORD
             );
 
@@ -314,13 +335,13 @@ class CustomerAuthController extends BaseApiController
     {
         return $this->executeWithExceptionHandling(function () use ($request) {
             $customer = $request->user();
-            
+
             $request->validate([
                 'type' => ['required', Rule::enum(OtpType::class)],
             ]);
 
             $otpType = OtpType::from($request->type);
-            
+
             // Determine which identifier to use
             $identifier = match ($otpType) {
                 OtpType::MOBILE_VERIFICATION => $customer->mobile_number,
@@ -330,8 +351,8 @@ class CustomerAuthController extends BaseApiController
 
             if (!$identifier) {
                 return $this->errorResponse(
-                    $otpType === OtpType::EMAIL_VERIFICATION 
-                        ? 'No email address on file' 
+                    $otpType === OtpType::EMAIL_VERIFICATION
+                        ? 'No email address on file'
                         : 'No mobile number on file'
                 );
             }
