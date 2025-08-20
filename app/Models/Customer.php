@@ -20,7 +20,8 @@ class Customer extends Authenticatable
         'password',
         'status',
         'location_id',
-        'date_of_birth',
+        'dob',
+        'image',
         'gender',
         'mobile_verified_at',
         'email_verified_at',
@@ -37,7 +38,7 @@ class Customer extends Authenticatable
             'mobile_verified_at' => 'datetime',
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'date_of_birth' => 'date',
+            'dob' => 'date',
             'status' => CustomerStatus::class,
             'gender' => Gender::class,
         ];

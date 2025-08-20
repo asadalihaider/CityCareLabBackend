@@ -26,7 +26,8 @@ class RegistrationRequest extends FormRequest
             'email' => ['nullable', 'string', 'email', 'max:255', 'unique:customers,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'location_id' => ['nullable', 'integer', 'exists:operating_cities,id'],
-            'date_of_birth' => ['nullable', 'date', 'before:today'],
+            'dob' => ['nullable', 'date', 'before:today'],
+            'image' => ['nullable', 'string', 'max:255'],
             'gender' => ['nullable', Rule::enum(Gender::class)],
         ];
     }
@@ -38,7 +39,7 @@ class RegistrationRequest extends FormRequest
             'mobile_number.unique' => 'This mobile number is already registered.',
             'email.unique' => 'This email address is already registered.',
             'password.confirmed' => 'Password confirmation does not match.',
-            'date_of_birth.before' => 'Date of birth must be before today.',
+            'dob.before' => 'Date of birth must be before today.',
         ];
     }
 }

@@ -15,20 +15,19 @@ class UpdateProfileRequest extends FormRequest
 
     public function rules(): array
     {
-        $customerId = auth('sanctum')->id();
+        $customer = $this->user();
 
         return [
-            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'name' => ['sometimes', 'string', 'max:255'],
             'email' => [
                 'sometimes',
-                'nullable',
-                'string',
                 'email',
                 'max:255',
-                Rule::unique('customers', 'email')->ignore($customerId),
+                Rule::unique('customers')->ignore($customer->id),
             ],
             'location_id' => ['sometimes', 'nullable', 'integer', 'exists:operating_cities,id'],
-            'date_of_birth' => ['sometimes', 'nullable', 'date', 'before:today'],
+            'image' => ['sometimes', 'nullable', 'string'],
+            'dob' => ['sometimes', 'nullable', 'date', 'before:today'],
             'gender' => ['sometimes', 'nullable', Rule::enum(Gender::class)],
         ];
     }
@@ -36,8 +35,28 @@ class UpdateProfileRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'email.unique' => 'This email address is already registered.',
-            'date_of_birth.before' => 'Date of birth must be before today.',
+            'name.string' => 'Name must be a valid string.',
+            'name.max' => 'Name cannot exceed 255 characters.',
+            'email.email' => 'Please provide a valid email address.',
+            'email.unique' => 'This email is already taken by another customer.',
+            'location_id.integer' => 'Location ID must be a valid number.',
+            'location_id.exists' => 'The selected location does not exist.',
+            'dob.date' => 'Date of birth must be a valid date.',
+            'dob.before' => 'Date of birth must be before today.',
+            'image.string' => 'Provide a valid image URL.',
+            'gender.in' => 'Gender must be either male or female.',
         ];
+    }
+
+    public function withValidator($validator)
+    {
+        $validator->after(function ($validator) {
+            if ($this->has('mobile_number')) {
+                $validator->errors()->add(
+                    'mobile_number',
+                    'Phone number cannot be changed. Please contact support if you need to update your phone number.'
+                );
+            }
+        });
     }
 }

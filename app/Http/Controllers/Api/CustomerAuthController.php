@@ -6,12 +6,11 @@ use App\Http\Requests\Customer\ForgotPasswordRequest;
 use App\Http\Requests\Customer\LoginRequest;
 use App\Http\Requests\Customer\RegistrationRequest;
 use App\Http\Requests\Customer\ResetPasswordRequest;
+use App\Http\Requests\Customer\UpdateProfileRequest;
 use App\Http\Requests\Customer\VerifyOtpRequest;
-use App\Http\Requests\UpdateProfileRequest;
 use App\Models\Customer;
 use App\Models\Enum\CustomerStatus;
 use App\Models\Enum\OtpType;
-use App\Models\Otp;
 use App\Services\OtpService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -27,6 +26,7 @@ class CustomerAuthController extends BaseApiController
     {
         $this->otpService = $otpService;
     }
+
     public function register(RegistrationRequest $request): JsonResponse
     {
         return $this->executeWithExceptionHandling(function () use ($request) {
@@ -37,7 +37,8 @@ class CustomerAuthController extends BaseApiController
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
                 'location_id' => $request->location_id,
-                'date_of_birth' => $request->date_of_birth,
+                'dob' => $request->dob,
+                'image' => $request->image,
                 'gender' => $request->gender,
                 'status' => CustomerStatus::ACTIVE,
             ]);
@@ -53,7 +54,7 @@ class CustomerAuthController extends BaseApiController
                 'location' => $customer->location ? [
                     'id' => $customer->location->id,
                     'name' => $customer->location->name,
-                    'province' => $customer->location->province
+                    'province' => $customer->location->province,
                 ] : null,
                 'status' => $customer->status,
                 'phone_verified' => $customer->isMobileVerified(),
@@ -84,7 +85,7 @@ class CustomerAuthController extends BaseApiController
             }
 
             // Check if mobile number is verified for login via mobile number
-            if ($loginField === 'mobile_number' && !$customer->isMobileVerified()) {
+            if ($loginField === 'mobile_number' && ! $customer->isMobileVerified()) {
                 return $this->errorResponse('Your phone number is not verified. Please verify your phone number first.', 403);
             }
 
@@ -101,7 +102,7 @@ class CustomerAuthController extends BaseApiController
                 'location' => $customer->location ? [
                     'id' => $customer->location->id,
                     'name' => $customer->location->name,
-                    'province' => $customer->location->province
+                    'province' => $customer->location->province,
                 ] : null,
                 'status' => $customer->status,
                 'phone_verified' => $customer->isMobileVerified(),
@@ -128,9 +129,10 @@ class CustomerAuthController extends BaseApiController
                 'location' => $customer->location ? [
                     'id' => $customer->location->id,
                     'name' => $customer->location->name,
-                    'province' => $customer->location->province
+                    'province' => $customer->location->province,
                 ] : null,
-                'date_of_birth' => $customer->date_of_birth,
+                'dob' => $customer->dob,
+                'image' => $customer->image,
                 'gender' => $customer->gender,
                 'status' => $customer->status,
                 'mobile_verified' => $customer->isMobileVerified(),
@@ -163,9 +165,10 @@ class CustomerAuthController extends BaseApiController
                 'location' => $customer->location ? [
                     'id' => $customer->location->id,
                     'name' => $customer->location->name,
-                    'province' => $customer->location->province
+                    'province' => $customer->location->province,
                 ] : null,
-                'date_of_birth' => $customer->date_of_birth,
+                'dob' => $customer->dob,
+                'image' => $customer->image,
                 'gender' => $customer->gender,
                 'status' => $customer->status,
                 'mobile_verified' => $customer->isMobileVerified(),
@@ -214,13 +217,13 @@ class CustomerAuthController extends BaseApiController
                 $otpType
             );
 
-            if (!$result['success']) {
+            if (! $result['success']) {
                 return $this->errorResponse($result['message'], 400);
             }
 
             $customer = Customer::where('mobile_number', $request->mobile_number)->first();
 
-            if (!$customer) {
+            if (! $customer) {
                 return $this->notFoundResponse('Customer not found');
             }
 
@@ -228,17 +231,19 @@ class CustomerAuthController extends BaseApiController
             switch ($otpType) {
                 case OtpType::MOBILE_VERIFICATION:
                     $customer->markMobileAsVerified();
+
                     return $this->successResponse(null, 'Phone number verified successfully. You can now login.');
 
                 case OtpType::EMAIL_VERIFICATION:
                     $customer->markEmailAsVerified();
+
                     return $this->successResponse(null, 'Email verified successfully.');
 
                 case OtpType::FORGOT_PASSWORD:
                     return $this->successResponse([
                         'mobile_number' => $customer->mobile_number,
                         'otp_verified' => true,
-                        'message' => 'OTP verified. You can now reset your password.'
+                        'message' => 'OTP verified. You can now reset your password.',
                     ], 'OTP verified successfully');
 
                 default:
@@ -263,13 +268,13 @@ class CustomerAuthController extends BaseApiController
 
             // Check if customer exists (phone number must be in database)
             $customer = Customer::where('mobile_number', $request->mobile_number)->first();
-            if (!$customer) {
+            if (! $customer) {
                 return $this->notFoundResponse('Customer not found. Please register first.');
             }
 
             $otp = $this->otpService->createAndSendOtp($request->mobile_number, $otpType);
 
-            if (!$otp) {
+            if (! $otp) {
                 return $this->errorResponse('Failed to send OTP. Please try again.');
             }
 
@@ -282,7 +287,7 @@ class CustomerAuthController extends BaseApiController
         return $this->executeWithExceptionHandling(function () use ($request) {
             $customer = Customer::where('mobile_number', $request->mobile_number)->first();
 
-            if (!$customer) {
+            if (! $customer) {
                 return $this->notFoundResponse('No account found with this mobile number.');
             }
 
@@ -291,7 +296,7 @@ class CustomerAuthController extends BaseApiController
                 OtpType::FORGOT_PASSWORD
             );
 
-            if (!$otp) {
+            if (! $otp) {
                 return $this->errorResponse('Failed to send reset OTP. Please try again.');
             }
 
@@ -309,19 +314,19 @@ class CustomerAuthController extends BaseApiController
                 OtpType::FORGOT_PASSWORD
             );
 
-            if (!$result['success']) {
+            if (! $result['success']) {
                 return $this->errorResponse($result['message'], 400);
             }
 
             $customer = Customer::where('mobile_number', $request->mobile_number)->first();
 
-            if (!$customer) {
+            if (! $customer) {
                 return $this->notFoundResponse('Customer not found');
             }
 
             // Update password
             $customer->update([
-                'password' => Hash::make($request->password)
+                'password' => Hash::make($request->password),
             ]);
 
             // Logout all existing sessions
@@ -349,7 +354,7 @@ class CustomerAuthController extends BaseApiController
                 default => throw new \InvalidArgumentException('Invalid OTP type for verification')
             };
 
-            if (!$identifier) {
+            if (! $identifier) {
                 return $this->errorResponse(
                     $otpType === OtpType::EMAIL_VERIFICATION
                         ? 'No email address on file'
@@ -359,7 +364,7 @@ class CustomerAuthController extends BaseApiController
 
             $otp = $this->otpService->createAndSendOtp($identifier, $otpType);
 
-            if (!$otp) {
+            if (! $otp) {
                 return $this->errorResponse('Failed to send OTP. Please try again.');
             }
 
