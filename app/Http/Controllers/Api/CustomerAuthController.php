@@ -30,7 +30,6 @@ class CustomerAuthController extends BaseApiController
     public function register(RegistrationRequest $request): JsonResponse
     {
         return $this->executeWithExceptionHandling(function () use ($request) {
-            // Create customer account (no OTP sending here)
             $customer = Customer::create([
                 'name' => $request->name,
                 'mobile_number' => $request->mobile_number,
@@ -43,7 +42,11 @@ class CustomerAuthController extends BaseApiController
                 'status' => CustomerStatus::ACTIVE,
             ]);
 
-            // Load the location relationship
+            $otp = $this->otpService->createAndSendOtp(
+                $customer->mobile_number,
+                OtpType::MOBILE_VERIFICATION
+            );
+
             $customer->load('location');
 
             $data = [
@@ -56,13 +59,16 @@ class CustomerAuthController extends BaseApiController
                     'name' => $customer->location->name,
                     'province' => $customer->location->province,
                 ] : null,
+                'dob' => $customer->dob,
+                'image' => $customer->image,
+                'gender' => $customer->gender,
                 'status' => $customer->status,
                 'phone_verified' => $customer->isMobileVerified(),
                 'email_verified' => $customer->isEmailVerified(),
-                'message' => 'Registration successful. Please verify your phone number to login.',
+                'otp_sent' => $otp !== null,
             ];
 
-            return $this->createdResponse($data, 'Customer registered successfully. Please verify your phone number.');
+            return $this->createdResponse($data, 'Customer registered successfully. OTP sent for verification.');
         }, 'Registration failed');
     }
 
@@ -104,11 +110,13 @@ class CustomerAuthController extends BaseApiController
                     'name' => $customer->location->name,
                     'province' => $customer->location->province,
                 ] : null,
+                'dob' => $customer->dob,
+                'image' => $customer->image,
+                'gender' => $customer->gender,
                 'status' => $customer->status,
                 'phone_verified' => $customer->isMobileVerified(),
                 'email_verified' => $customer->isEmailVerified(),
                 'token' => $token,
-                'token_type' => 'Bearer',
             ];
 
             return $this->successResponse($data, 'Login successful');
@@ -334,41 +342,5 @@ class CustomerAuthController extends BaseApiController
 
             return $this->successResponse(null, 'Password reset successfully. Please login with your new password.');
         }, 'Password reset failed');
-    }
-
-    public function sendVerificationOtp(Request $request): JsonResponse
-    {
-        return $this->executeWithExceptionHandling(function () use ($request) {
-            $customer = $request->user();
-
-            $request->validate([
-                'type' => ['required', Rule::enum(OtpType::class)],
-            ]);
-
-            $otpType = OtpType::from($request->type);
-
-            // Determine which identifier to use
-            $identifier = match ($otpType) {
-                OtpType::MOBILE_VERIFICATION => $customer->mobile_number,
-                OtpType::EMAIL_VERIFICATION => $customer->email,
-                default => throw new \InvalidArgumentException('Invalid OTP type for verification')
-            };
-
-            if (! $identifier) {
-                return $this->errorResponse(
-                    $otpType === OtpType::EMAIL_VERIFICATION
-                        ? 'No email address on file'
-                        : 'No mobile number on file'
-                );
-            }
-
-            $otp = $this->otpService->createAndSendOtp($identifier, $otpType);
-
-            if (! $otp) {
-                return $this->errorResponse('Failed to send OTP. Please try again.');
-            }
-
-            return $this->successResponse(null, 'OTP sent successfully');
-        }, 'Failed to send verification OTP');
     }
 }

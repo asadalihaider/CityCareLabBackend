@@ -33,7 +33,6 @@ Route::middleware(['auth:sanctum'])->prefix('customer')->group(function () {
     Route::put('profile', [CustomerAuthController::class, 'updateProfile']);
     Route::post('logout', [CustomerAuthController::class, 'logout']);
     Route::post('refresh', [CustomerAuthController::class, 'refresh']);
-    Route::post('send-verification-otp', [CustomerAuthController::class, 'sendVerificationOtp']);
 
     Route::apiResource('bookings', BookingController::class)->except(['destroy']);
 });
