@@ -111,6 +111,30 @@ class OtpService
         ];
     }
 
+    public function hasVerifiedOtp(string $identifier, string $otpCode, OtpType $type, int $withinMinutes = 5): array
+    {
+        $otp = Otp::forIdentifier($identifier)
+            ->ofType($type)
+            ->where('otp', $otpCode)
+            ->whereNotNull('verified_at')
+            ->where('verified_at', '>=', now()->subMinutes($withinMinutes))
+            ->latest('verified_at')
+            ->first();
+
+        if (!$otp) {
+            return [
+                'success' => false,
+                'message' => 'No verified OTP found or verification expired. Please verify OTP first.'
+            ];
+        }
+
+        return [
+            'success' => true,
+            'message' => 'Verified OTP found.',
+            'otp' => $otp
+        ];
+    }
+
     public function cleanExpiredOtps(): int
     {
         return Otp::where('expires_at', '<', now())->delete();

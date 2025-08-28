@@ -315,8 +315,7 @@ class CustomerAuthController extends BaseApiController
     public function resetPassword(ResetPasswordRequest $request): JsonResponse
     {
         return $this->executeWithExceptionHandling(function () use ($request) {
-            // First verify the OTP
-            $result = $this->otpService->verifyOtp(
+            $result = $this->otpService->hasVerifiedOtp(
                 $request->mobile_number,
                 $request->otp,
                 OtpType::FORGOT_PASSWORD
@@ -332,12 +331,10 @@ class CustomerAuthController extends BaseApiController
                 return $this->notFoundResponse('Customer not found');
             }
 
-            // Update password
             $customer->update([
                 'password' => Hash::make($request->password),
             ]);
 
-            // Logout all existing sessions
             $customer->tokens()->delete();
 
             return $this->successResponse(null, 'Password reset successfully. Please login with your new password.');
