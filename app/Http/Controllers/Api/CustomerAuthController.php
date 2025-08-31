@@ -16,7 +16,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
 
 class CustomerAuthController extends BaseApiController
 {
@@ -81,9 +80,7 @@ class CustomerAuthController extends BaseApiController
             $customer = Customer::with('location')->where($loginField, $login)->first();
 
             if (! $customer || ! Hash::check($request->password, $customer->password)) {
-                throw ValidationException::withMessages([
-                    'login' => ['The provided credentials are incorrect.'],
-                ]);
+                return $this->errorResponse('The provided credentials are incorrect.', 422);
             }
 
             if ($customer->status !== CustomerStatus::ACTIVE) {
