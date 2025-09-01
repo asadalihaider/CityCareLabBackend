@@ -152,12 +152,14 @@ class TestResource extends Resource
                 FileUpload::make('image')
                     ->label(__('Image'))
                     ->image()
-                    ->directory('test-images')
-                    ->visibility('public')
+                    ->disk('s3')
+                    ->visibility('publico')
+                    ->directory('featured-tests')
+                    ->maxSize(2048)
                     ->visible(fn ($get) => $get('is_featured') === true)
+                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
                     ->required(fn ($get) => $get('is_featured') === true)
-                    ->helperText('Required for featured tests')
-                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp']),
+                    ->helperText('Required for featured tests. Max size: 2MB'),
 
                 Toggle::make('is_active')
                     ->label(__('Active'))

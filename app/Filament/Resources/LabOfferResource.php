@@ -39,10 +39,12 @@ class LabOfferResource extends Resource
 
                 FileUpload::make('image')
                     ->image()
-                    ->directory('lab-offers')
-                    ->disk('public')
-                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
+                    ->directory('offers')
+                    ->disk('s3')
+                    ->visibility('publico')
                     ->required()
+                    ->maxSize(2048)
+                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
                     ->previewable(true),
 
                 Toggle::make('is_active')
@@ -56,7 +58,7 @@ class LabOfferResource extends Resource
         return $table
             ->columns([
                 ImageColumn::make('image')
-                    ->disk('public')
+                    ->disk('s3')
                     ->square()
                     ->extraImgAttributes(['loading' => 'lazy'])
                     ->default('/placeholder.png'),

@@ -14,7 +14,6 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -71,11 +70,10 @@ class CustomerResource extends Resource
                     ->label(__('Image'))
                     ->image()
                     ->disk('s3')
+                    ->visibility('publico')
                     ->directory('customers')
                     ->maxSize(2048)
-                    ->visible(fn ($get) => $get('is_featured') === true)
                     ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
-                    ->required(fn ($get) => $get('is_featured') === true)
                     ->helperText('Required for featured tests. Max size: 2MB'),
 
                 Select::make('status')
@@ -89,12 +87,6 @@ class CustomerResource extends Resource
     {
         return $table
             ->columns([
-                ImageColumn::make('image')
-                    ->label(__('Image'))
-                    ->disk('s3')
-                    ->square()
-                    ->extraImgAttributes(['loading' => 'lazy'])
-                    ->default('/placeholder.png'),
                 TextColumn::make('name')
                     ->label(__('Name'))
                     ->searchable(),

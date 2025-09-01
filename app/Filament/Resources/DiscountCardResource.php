@@ -48,7 +48,9 @@ class DiscountCardResource extends Resource
                     ->image()
                     ->required()
                     ->directory('discount-cards')
-                    ->disk('public')
+                    ->disk('s3')
+                    ->visibility('publico')
+                    ->maxSize(2048)
                     ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
                     ->previewable(true),
 
@@ -63,7 +65,7 @@ class DiscountCardResource extends Resource
         return $table
             ->columns([
                 ImageColumn::make('image')
-                    ->disk('public')
+                    ->disk('s3')
                     ->square()
                     ->extraImgAttributes(['loading' => 'lazy'])
                     ->default('/placeholder.png'),
