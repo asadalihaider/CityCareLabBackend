@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Models\Test;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class TestController extends BaseApiController
 {
@@ -15,12 +16,31 @@ class TestController extends BaseApiController
                 ->with(['categories:id,slug'])
                 ->select(['id', 'title', 'short_title', 'duration', 'type', 'price', 'discount', 'includes', 'prerequisites', 'relevant_diseases', 'relevant_symptoms', 'is_featured', 'image']);
 
-            // Add filtering by type if needed
+            // Add search functionality
+            if ($request->has('category') && $request->category) {
+                $categorySlug = $request->category;
+                $query->whereHas('categories', function ($categoryQuery) use ($categorySlug) {
+                    $categoryQuery->where('slug', $categorySlug);
+                });
+            }
+
+            if ($request->has('search') && $request->search) {
+                $searchTerm = $request->search;
+                $query->where(function ($q) use ($searchTerm) {
+                    $q->where('title', 'LIKE', "%{$searchTerm}%")
+                        ->orWhere('short_title', 'LIKE', "%{$searchTerm}%")
+                        ->orWhereJsonContains('relevant_symptoms', $searchTerm)
+                        ->orWhereJsonContains('relevant_diseases', $searchTerm)
+                        ->orWhereHas('categories', function ($categoryQuery) use ($searchTerm) {
+                            $categoryQuery->where('title', 'LIKE', "%{$searchTerm}%");
+                        });
+                });
+            }
+
             if ($request->has('type') && $request->type) {
                 $query->byType($request->type);
             }
 
-            // Add filtering by featured status
             if ($request->has('featured') && $request->boolean('featured')) {
                 $query->featured();
             }
@@ -42,7 +62,7 @@ class TestController extends BaseApiController
                     'relevantSymptoms' => $test->relevant_symptoms ?? [],
                     'relevantDiseases' => $test->relevant_diseases ?? [],
                     'isFeatured' => $test->is_featured,
-                    'image' => $test->image ? asset('storage/'.$test->image) : null,
+                    'image' => $test->image ? Storage::disk('s3')->temporaryUrl($test->image, now()->addDays(3)) : null,
                 ];
             });
 

@@ -15,6 +15,7 @@ use App\Services\OtpService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class CustomerAuthController extends BaseApiController
@@ -46,26 +47,7 @@ class CustomerAuthController extends BaseApiController
                 OtpType::MOBILE_VERIFICATION
             );
 
-            $customer->load('location');
-
-            $data = [
-                'id' => $customer->id,
-                'name' => $customer->name,
-                'mobile_number' => $customer->mobile_number,
-                'email' => $customer->email,
-                'location' => $customer->location ? [
-                    'id' => $customer->location->id,
-                    'name' => $customer->location->name,
-                    'province' => $customer->location->province,
-                ] : null,
-                'dob' => $customer->dob,
-                'image' => $customer->image,
-                'gender' => $customer->gender,
-                'status' => $customer->status,
-                'phone_verified' => $customer->isMobileVerified(),
-                'email_verified' => $customer->isEmailVerified(),
-                'otp_sent' => $otp !== null,
-            ];
+            $data = ['otp_sent' => $otp !== null];
 
             return $this->createdResponse($data, 'Customer registered successfully. OTP sent for verification.');
         }, 'Registration failed');
@@ -97,24 +79,7 @@ class CustomerAuthController extends BaseApiController
 
             $token = $customer->createToken('mobile-app')->plainTextToken;
 
-            $data = [
-                'id' => $customer->id,
-                'name' => $customer->name,
-                'mobile_number' => $customer->mobile_number,
-                'email' => $customer->email,
-                'location' => $customer->location ? [
-                    'id' => $customer->location->id,
-                    'name' => $customer->location->name,
-                    'province' => $customer->location->province,
-                ] : null,
-                'dob' => $customer->dob,
-                'image' => $customer->image,
-                'gender' => $customer->gender,
-                'status' => $customer->status,
-                'phone_verified' => $customer->isMobileVerified(),
-                'email_verified' => $customer->isEmailVerified(),
-                'token' => $token,
-            ];
+            $data = ['token' => $token];
 
             return $this->successResponse($data, 'Login successful');
         }, 'Login failed');
@@ -137,7 +102,7 @@ class CustomerAuthController extends BaseApiController
                     'province' => $customer->location->province,
                 ] : null,
                 'dob' => $customer->dob,
-                'image' => $customer->image,
+                'image' => $customer->image ? Storage::disk('s3')->temporaryUrl($customer->image, now()->addDays(1)) : null,
                 'gender' => $customer->gender,
                 'status' => $customer->status,
                 'mobile_verified' => $customer->isMobileVerified(),
@@ -152,9 +117,17 @@ class CustomerAuthController extends BaseApiController
     {
         return $this->executeWithExceptionHandling(function () use ($request) {
             $customer = $request->user();
-
-            // If email is being updated and is different from current, reset email verification
             $updateData = $request->validated();
+
+            if ($request->hasFile('image')) {
+                if ($customer->image) {
+                    Storage::disk('s3')->delete($customer->image);
+                }
+
+                $imagePath = $request->file('image')->store('customers', 's3');
+                $updateData['image'] = $imagePath;
+            }
+
             if (isset($updateData['email']) && $updateData['email'] !== $customer->email) {
                 $updateData['email_verified_at'] = null;
             }
@@ -173,7 +146,7 @@ class CustomerAuthController extends BaseApiController
                     'province' => $customer->location->province,
                 ] : null,
                 'dob' => $customer->dob,
-                'image' => $customer->image,
+                'image' => $customer->image ? Storage::disk('s3')->temporaryUrl($customer->image, now()->addDays(1)) : null,
                 'gender' => $customer->gender,
                 'status' => $customer->status,
                 'mobile_verified' => $customer->isMobileVerified(),
