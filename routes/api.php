@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\CustomerAuthController;
 use App\Http\Controllers\Api\DiscountCardController;
+use App\Http\Controllers\Api\FeedbackController;
 use App\Http\Controllers\Api\LabCenterController;
 use App\Http\Controllers\Api\LabOfferController;
 use App\Http\Controllers\Api\OperatingCityController;
@@ -33,6 +34,6 @@ Route::middleware(['auth:sanctum'])->prefix('customer')->group(function () {
     Route::post('profile', [CustomerAuthController::class, 'updateProfile']);
     Route::post('logout', [CustomerAuthController::class, 'logout']);
     Route::post('refresh', [CustomerAuthController::class, 'refresh']);
-
+    Route::post('feedback', [FeedbackController::class, 'store']);
     Route::apiResource('bookings', BookingController::class)->except(['destroy']);
 });

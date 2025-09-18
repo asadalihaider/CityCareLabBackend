@@ -78,6 +78,11 @@ class Customer extends Authenticatable
         return $this->hasMany(Booking::class);
     }
 
+    public function feedbacks()
+    {
+        return $this->hasMany(Feedback::class);
+    }
+
     public function location()
     {
         return $this->belongsTo(OperatingCity::class, 'location_id');
