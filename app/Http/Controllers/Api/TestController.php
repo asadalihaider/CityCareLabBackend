@@ -95,7 +95,7 @@ class TestController extends BaseApiController
                 'download_link' => 'https://example.com/reports/report1.pdf',
             ],
             [
-                'id' => 3,
+                'id' => 4,
                 'name' => 'Ms. Nabeela',
                 'date' => '2025-05-01',
                 'status' => 'in_progress',
@@ -103,6 +103,6 @@ class TestController extends BaseApiController
             ],
         ];
 
-        return $this->paginatedResponse($tests, 'Tests retrieved successfully');
+        return $this->collectionResponse($tests, 'Tests retrieved successfully');
     }
 }
