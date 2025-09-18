@@ -35,5 +35,6 @@ Route::middleware(['auth:sanctum'])->prefix('customer')->group(function () {
     Route::post('logout', [CustomerAuthController::class, 'logout']);
     Route::post('refresh', [CustomerAuthController::class, 'refresh']);
     Route::post('feedback', [FeedbackController::class, 'store']);
+    Route::post('test-history', [TestController::class, 'history']);
     Route::apiResource('bookings', BookingController::class)->except(['destroy']);
 });

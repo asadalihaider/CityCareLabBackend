@@ -69,4 +69,40 @@ class TestController extends BaseApiController
             return $this->paginatedResponse($tests, 'Tests retrieved successfully');
         }, 'Failed to retrieve tests');
     }
+
+    public function history(): JsonResponse
+    {
+        $tests = [
+            [
+                'id' => 1,
+                'name' => 'Mr. Asad Ali',
+                'date' => '2025-04-01',
+                'status' => 'done',
+                'download_link' => 'https://example.com/reports/report1.pdf',
+            ],
+            [
+                'id' => 2,
+                'name' => 'Ms. Ayesha',
+                'date' => '2025-04-11',
+                'status' => 'due',
+                'download_link' => 'https://example.com/reports/report1.pdf',
+            ],
+            [
+                'id' => 3,
+                'name' => 'Mrs. Arslan',
+                'date' => '2025-04-21',
+                'status' => 'pending',
+                'download_link' => 'https://example.com/reports/report1.pdf',
+            ],
+            [
+                'id' => 3,
+                'name' => 'Ms. Nabeela',
+                'date' => '2025-05-01',
+                'status' => 'in_progress',
+                'download_link' => 'https://example.com/reports/report1.pdf',
+            ],
+        ];
+
+        return $this->paginatedResponse($tests, 'Tests retrieved successfully');
+    }
 }
