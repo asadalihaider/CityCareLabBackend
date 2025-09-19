@@ -37,6 +37,6 @@ class OperatingCity extends Model
 
     public function customers(): HasMany
     {
-        return $this->hasMany(Customer::class, 'location_id');
+        return $this->hasMany(Customer::class, 'city_id');
     }
 }

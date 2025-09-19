@@ -35,7 +35,7 @@ class CustomerAuthController extends BaseApiController
                 'mobile_number' => $request->mobile_number,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
-                'location_id' => $request->location_id,
+                'city_id' => $request->city_id,
                 'dob' => $request->dob,
                 'image' => $request->image,
                 'gender' => $request->gender,
@@ -96,10 +96,10 @@ class CustomerAuthController extends BaseApiController
                 'name' => $customer->name,
                 'mobile_number' => $customer->mobile_number,
                 'email' => $customer->email,
-                'location' => $customer->location ? [
-                    'id' => $customer->location->id,
-                    'name' => $customer->location->name,
-                    'province' => $customer->location->province,
+                'city' => $customer->city ? [
+                    'id' => $customer->city->id,
+                    'name' => $customer->city->name,
+                    'province' => $customer->city->province,
                 ] : null,
                 'dob' => $customer->dob,
                 'image' => $customer->image ? Storage::disk('s3')->temporaryUrl($customer->image, now()->addDays(1)) : null,
@@ -140,10 +140,10 @@ class CustomerAuthController extends BaseApiController
                 'name' => $customer->name,
                 'mobile_number' => $customer->mobile_number,
                 'email' => $customer->email,
-                'location' => $customer->location ? [
-                    'id' => $customer->location->id,
-                    'name' => $customer->location->name,
-                    'province' => $customer->location->province,
+                'city' => $customer->city ? [
+                    'id' => $customer->city->id,
+                    'name' => $customer->city->name,
+                    'province' => $customer->city->province,
                 ] : null,
                 'dob' => $customer->dob,
                 'image' => $customer->image ? Storage::disk('s3')->temporaryUrl($customer->image, now()->addDays(1)) : null,

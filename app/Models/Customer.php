@@ -19,7 +19,7 @@ class Customer extends Authenticatable
         'email',
         'password',
         'status',
-        'location_id',
+        'city_id',
         'dob',
         'image',
         'gender',
@@ -83,8 +83,8 @@ class Customer extends Authenticatable
         return $this->hasMany(Feedback::class);
     }
 
-    public function location()
+    public function city()
     {
-        return $this->belongsTo(OperatingCity::class, 'location_id');
+        return $this->belongsTo(OperatingCity::class, 'city_id');
     }
 }

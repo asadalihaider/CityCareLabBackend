@@ -60,7 +60,7 @@ class CustomerResource extends Resource
                     ->label(__('Gender'))
                     ->options(Gender::toOptions()),
 
-                Select::make('location_id')
+                Select::make('city_id')
                     ->label(__('Location'))
                     ->required()
                     ->relationship('location', 'name')
@@ -99,9 +99,9 @@ class CustomerResource extends Resource
                 TextColumn::make('dob')
                     ->label(__('Date of Birth'))
                     ->date('d M, Y'),
-                TextColumn::make('location_id')
-                    ->label(__('Location'))
-                    ->getStateUsing(fn (Customer $record) => $record->location?->name),
+                TextColumn::make('city_id')
+                    ->label(__('City'))
+                    ->getStateUsing(fn (Customer $record) => $record->city?->name),
                 TextColumn::make('gender')
                     ->label(__('Gender'))
                     ->getStateUsing(fn (Customer $record) => $record->gender?->label()),
@@ -111,12 +111,12 @@ class CustomerResource extends Resource
                     ->label(__('Gender'))
                     ->options(Gender::toOptions()),
 
-                SelectFilter::make('location')
-                    ->label(__('Location'))
+                SelectFilter::make('city')
+                    ->label(__('City'))
                     ->options(OperatingCity::pluck('name', 'id'))
                     ->query(function (Builder $query, array $data): Builder {
                         if (filled($data['value'])) {
-                            return $query->where('location_id', $data['value']);
+                            return $query->where('city_id', $data['value']);
                         }
 
                         return $query;
