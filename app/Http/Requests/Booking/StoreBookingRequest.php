@@ -18,11 +18,18 @@ class StoreBookingRequest extends FormRequest
         return [
             'patient_name' => ['required', 'string', 'max:255'],
             'contact_number' => ['required', 'string', 'max:20'],
-            'address' => ['required', 'string', 'max:1000'],
             'booking_type' => ['required', Rule::in(BookingType::values())],
             'purpose' => ['nullable', 'string', 'max:500'],
-            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
-            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'booking_items' => ['nullable', 'array'],
+            'booking_items.*.test_id' => ['required_if:booking_items.*.type,test', 'integer', 'exists:tests,id'],
+            'location' => ['nullable', 'array'],
+            'location.latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'location.longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'location.street_address' => ['nullable', 'string', 'max:500'],
+            'location.city' => ['nullable', 'string', 'max:255'],
+            'location.state' => ['nullable', 'string', 'max:255'],
+            'location.postal_code' => ['nullable', 'string', 'max:20'],
+            'location.country' => ['nullable', 'string', 'max:255'],
             'booking_date' => ['nullable', 'date', 'after:now'],
         ];
     }
@@ -34,13 +41,20 @@ class StoreBookingRequest extends FormRequest
             'patient_name.max' => 'Patient name cannot exceed 255 characters',
             'contact_number.required' => 'Contact number is required',
             'contact_number.max' => 'Contact number cannot exceed 20 characters',
-            'address.required' => 'Address is required',
-            'address.max' => 'Address cannot exceed 1000 characters',
             'booking_type.required' => 'Booking type is required',
             'booking_type.in' => 'Invalid booking type selected',
             'purpose.max' => 'Purpose cannot exceed 500 characters',
-            'latitude.between' => 'Latitude must be between -90 and 90',
-            'longitude.between' => 'Longitude must be between -180 and 180',
+            'booking_items.array' => 'Booking items must be an array',
+            'booking_items.*.test_id.required_if' => 'Test ID is required for test items',
+            'booking_items.*.test_id.exists' => 'Selected test does not exist',
+            'location.array' => 'Location must be an object',
+            'location.latitude.between' => 'Latitude must be between -90 and 90',
+            'location.longitude.between' => 'Longitude must be between -180 and 180',
+            'location.street_address.max' => 'Street address cannot exceed 500 characters',
+            'location.city.max' => 'City cannot exceed 255 characters',
+            'location.state.max' => 'State cannot exceed 255 characters',
+            'location.postal_code.max' => 'Postal code cannot exceed 20 characters',
+            'location.country.max' => 'Country cannot exceed 255 characters',
             'booking_date.after' => 'Booking date must be in the future',
         ];
     }
@@ -58,13 +72,15 @@ class StoreBookingRequest extends FormRequest
     public function withValidator($validator)
     {
         $validator->after(function ($validator) {
-            // Add custom validation logic here if needed
-            if ($this->filled('latitude') && ! $this->filled('longitude')) {
-                $validator->errors()->add('longitude', 'Location is required');
+            // Validate location coordinates are provided together
+            $location = $this->input('location', []);
+            
+            if (isset($location['latitude']) && !isset($location['longitude'])) {
+                $validator->errors()->add('location.longitude', 'Longitude is required when latitude is provided');
             }
 
-            if ($this->filled('longitude') && ! $this->filled('latitude')) {
-                $validator->errors()->add('latitude', 'Location is required');
+            if (isset($location['longitude']) && !isset($location['latitude'])) {
+                $validator->errors()->add('location.latitude', 'Latitude is required when longitude is provided');
             }
         });
     }

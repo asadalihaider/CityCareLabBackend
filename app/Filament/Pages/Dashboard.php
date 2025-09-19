@@ -42,13 +42,18 @@ class Dashboard extends BaseDashboard implements HasTable
                     ->label('Status')
                     ->options(fn ($record) => BookingStatus::getOptionsForBookingType($record->booking_type)),
 
-                TextColumn::make('address')
-                    ->label('Address')
-                    ->limit(30)
+                TextColumn::make('location')
+                    ->label(__('Address'))
+                    ->limit(40)
                     ->icon('heroicon-o-map-pin')
-                    ->color('info')
-                    ->url(fn (Booking $record) => 'https://maps.google.com/?q='.$record->latitude.','.$record->longitude)
-                    ->openUrlInNewTab(),
+                    ->url(function (Booking $record) {
+                        if ($record->location['latitude'] && $record->location['longitude']) {
+                            return 'https://maps.google.com/?q=' . $record->location['latitude'] . ',' . $record->location['longitude'];
+                        }
+                        return null;
+                    })
+                    ->openUrlInNewTab()
+                    ->getStateUsing(fn (Booking $record) => $record->location ?? 'N/A'),
 
                 TextColumn::make('booking_date')
                     ->label('Booking Date')

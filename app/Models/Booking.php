@@ -16,11 +16,10 @@ class Booking extends Model
         'status',
         'patient_name',
         'contact_number',
-        'address',
         'booking_type',
         'purpose',
-        'latitude',
-        'longitude',
+        'booking_items',
+        'location',
         'booking_date',
     ];
 
@@ -33,21 +32,9 @@ class Booking extends Model
         'status' => BookingStatus::class,
         'booking_type' => BookingType::class,
         'booking_date' => 'datetime',
-        'latitude' => 'decimal:8',
-        'longitude' => 'decimal:8',
+        'booking_items' => 'array',
+        'location' => 'array',
     ];
-
-    public function getLocationAttribute()
-    {
-        if ($this->latitude && $this->longitude) {
-            return [
-                'latitude' => (float) $this->latitude,
-                'longitude' => (float) $this->longitude,
-            ];
-        }
-
-        return null;
-    }
 
     public function scopeByStatus($query, $status)
     {

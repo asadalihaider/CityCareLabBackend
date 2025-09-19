@@ -16,11 +16,10 @@ return new class extends Migration
             $table->enum('status', BookingStatus::values())->default(BookingStatus::WAITING->value);
             $table->string('patient_name');
             $table->string('contact_number');
-            $table->text('address');
             $table->enum('booking_type', BookingType::values())->default(BookingType::TEST->value);
             $table->text('purpose')->nullable();
-            $table->decimal('latitude', 10, 8);
-            $table->decimal('longitude', 11, 8);
+            $table->json('booking_items')->nullable();
+            $table->json('location')->nullable();
             $table->timestamp('booking_date')->default(now());
             $table->timestamps();
         });
