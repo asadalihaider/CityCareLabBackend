@@ -33,13 +33,7 @@ class CustomerAuthController extends BaseApiController
             $customer = Customer::create([
                 'name' => $request->name,
                 'mobile_number' => $request->mobile_number,
-                'email' => $request->email,
                 'password' => Hash::make($request->password),
-                'city_id' => $request->city_id,
-                'dob' => $request->dob,
-                'image' => $request->image,
-                'gender' => $request->gender,
-                'status' => CustomerStatus::ACTIVE,
             ]);
 
             $otp = $this->otpService->createAndSendOtp(
@@ -59,7 +53,7 @@ class CustomerAuthController extends BaseApiController
             $login = $request->login;
             $loginField = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'mobile_number';
 
-            $customer = Customer::with('location')->where($loginField, $login)->first();
+            $customer = Customer::with('city')->where($loginField, $login)->first();
 
             if (! $customer || ! Hash::check($request->password, $customer->password)) {
                 return $this->errorResponse('The provided credentials are incorrect.', 422);
@@ -89,7 +83,7 @@ class CustomerAuthController extends BaseApiController
     {
         return $this->executeWithExceptionHandling(function () use ($request) {
             $customer = $request->user();
-            $customer->load('location');
+            $customer->load('city');
 
             $data = [
                 'id' => $customer->id,
@@ -133,7 +127,7 @@ class CustomerAuthController extends BaseApiController
             }
 
             $customer->update($updateData);
-            $customer->load('location');
+            $customer->load('city');
 
             $data = [
                 'id' => $customer->id,
