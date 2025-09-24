@@ -138,15 +138,13 @@ class BookingController extends BaseApiController
         $location = $booking->location;
         
         return [
-            'location' => [
-                'street' => $location['street_address'] ?? null,
-                'city' => $location['city'] ?? null,
-                'state' => $location['state'] ?? null,
-                'postalCode' => $location['postal_code'] ?? null,
-                'country' => $location['country'] ?? null,
-                'latitude' => $location['latitude'] ?? (float) $location['latitude'],
-                'longitude' => $location['longitude'] ?? (float) $location['longitude'],
-            ],
+            'street' => $location['street_address'] ?? null,
+            'city' => $location['city'] ?? null,
+            'state' => $location['state'] ?? null,
+            'postalCode' => $location['postal_code'] ?? null,
+            'country' => $location['country'] ?? null,
+            'latitude' => $location['latitude'] ?? (float) $location['latitude'],
+            'longitude' => $location['longitude'] ?? (float) $location['longitude'],
         ];
     }
 }

@@ -17,7 +17,7 @@ class ResetPasswordRequest extends FormRequest
             'mobile_number' => [
                 'required',
                 'string',
-                'regex:/^((\+92)?(0092)?(92)?(0)?)(3)([0-9]{9})$/',
+                'regex:/^(?:\+92|0)3[0-9]{9}$/',
                 'exists:customers,mobile_number',
             ],
             'otp' => ['required', 'string', 'size:6'],

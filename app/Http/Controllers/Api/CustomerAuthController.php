@@ -231,7 +231,7 @@ class CustomerAuthController extends BaseApiController
                 'mobile_number' => [
                     'required',
                     'string',
-                    'regex:/^((\+92)?(0092)?(92)?(0)?)(3)([0-9]{9})$/',
+                    'regex:/^(?:\+92|0)3[0-9]{9}$/',
                 ],
                 'type' => ['required', Rule::enum(OtpType::class)],
             ]);
