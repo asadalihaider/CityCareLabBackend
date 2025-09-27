@@ -11,7 +11,14 @@ use App\Http\Controllers\Api\TestCategoryController;
 use App\Http\Controllers\Api\TestController;
 use Illuminate\Support\Facades\Route;
 
-// Public routes
+Route::get('discount-cards', [DiscountCardController::class, 'index']);
+Route::get('lab-offers', [LabOfferController::class, 'index']);
+Route::get('operating-cities', [OperatingCityController::class, 'index']);
+Route::get('lab-centers', [LabCenterController::class, 'index']);
+Route::get('test-categories', [TestCategoryController::class, 'index']);
+Route::get('tests', [TestController::class, 'index']);
+Route::get('download-report', [TestController::class, 'downloadReport']);
+
 Route::prefix('customer')->group(function () {
     Route::post('register', [CustomerAuthController::class, 'register']);
     Route::post('login', [CustomerAuthController::class, 'login']);
@@ -20,13 +27,6 @@ Route::prefix('customer')->group(function () {
     Route::post('forgot-password', [CustomerAuthController::class, 'forgotPassword']);
     Route::post('reset-password', [CustomerAuthController::class, 'resetPassword']);
 });
-
-Route::get('discount-cards', [DiscountCardController::class, 'index']);
-Route::get('lab-offers', [LabOfferController::class, 'index']);
-Route::get('operating-cities', [OperatingCityController::class, 'index']);
-Route::get('lab-centers', [LabCenterController::class, 'index']);
-Route::get('test-categories', [TestCategoryController::class, 'index']);
-Route::get('tests', [TestController::class, 'index']);
 
 // Protected routes
 Route::middleware(['auth:sanctum'])->prefix('customer')->group(function () {

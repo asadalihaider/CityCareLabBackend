@@ -68,9 +68,6 @@ class CustomerAuthController extends BaseApiController
                 return $this->errorResponse('Your phone number is not verified. Please verify your phone number first.', 403);
             }
 
-            // Delete existing tokens
-            $customer->tokens()->delete();
-
             $token = $customer->createToken('mobile-app')->plainTextToken;
 
             $data = ['token' => $token];

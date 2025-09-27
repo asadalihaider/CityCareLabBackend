@@ -39,7 +39,7 @@ return [
         'base_url' => env('PATHCARESOFT_API_BASE_URL'),
         'user_id' => env('PATHCARESOFT_API_USER_ID'),
         'password' => env('PATHCARESOFT_API_PASSWORD'),
-        'timeout' => env('PATHCARESOFT_API_TIMEOUT'),
+        'timeout' => env('PATHCARESOFT_API_TIMEOUT', 30),
     ],
 
 ];
