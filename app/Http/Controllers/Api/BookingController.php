@@ -6,8 +6,6 @@ use App\Http\Requests\Booking\StoreBookingRequest;
 use App\Http\Requests\Booking\UpdateBookingRequest;
 use App\Models\Booking;
 use App\Models\Customer;
-use App\Models\Enum\BookingType;
-use App\Models\Test;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -93,50 +91,21 @@ class BookingController extends BaseApiController
             'contactNumber' => $booking->contact_number,
             'bookingType' => $booking->booking_type,
             'purpose' => $booking->purpose,
-            'bookingItems' => $this->transformBookingItems($booking),
+            'bookingItems' => $booking->booking_items,
             'location' => $this->transformLocation($booking),
             'bookingDate' => $booking->booking_date?->toISOString(),
             'customer' => $booking->customer->name,
         ];
     }
 
-    private function transformBookingItems(Booking $booking): array
-    {
-        if (!$booking->booking_items) {
-            return [];
-        }
-
-        return collect($booking->booking_items)->map(function ($item) {
-            if ($item['type'] === BookingType::TEST) {
-                $testData = [];
-
-                if (!empty($item['test_id'])) {
-                    $test = Test::find($item['test_id']);
-                    if ($test) {
-                        $testData['test'] = [
-                            'id' => $test->id,
-                            'title' => $test->title,
-                            'price' => $test->price,
-                            'discount' => $test->discount,
-                        ];
-                    }
-                }
-
-                return $testData;
-            }
-
-            return $item;
-        })->toArray();
-    }
-
     private function transformLocation(Booking $booking): ?array
     {
-        if (!$booking->location) {
+        if (! $booking->location) {
             return null;
         }
 
         $location = $booking->location;
-        
+
         return [
             'street' => $location['street_address'] ?? null,
             'city' => $location['city'] ?? null,
