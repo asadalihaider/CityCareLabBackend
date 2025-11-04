@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\DiscountCardResource\Pages;
-use App\Models\DiscountCard;
+use App\Filament\Resources\OfferCardResource\Pages;
+use App\Models\OfferCard;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -16,17 +16,17 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 
-class DiscountCardResource extends Resource
+class OfferCardResource extends Resource
 {
-    protected static ?string $model = DiscountCard::class;
+    protected static ?string $model = OfferCard::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-credit-card';
 
-    protected static ?string $navigationLabel = 'Discount Cards';
+    protected static ?string $navigationLabel = 'Offer Cards';
 
-    protected static ?string $modelLabel = 'Discount Card';
+    protected static ?string $modelLabel = 'Offer Card';
 
-    protected static ?string $pluralModelLabel = 'Discount Cards';
+    protected static ?string $pluralModelLabel = 'Offer Cards';
 
     public static function form(Form $form): Form
     {
@@ -40,6 +40,13 @@ class DiscountCardResource extends Resource
                     ->required()
                     ->placeholder('https://example.com/discount-cards/card-name'),
 
+                TextInput::make('price')
+                    ->numeric()
+                    ->required()
+                    ->default(500.00)
+                    ->suffix('PKR')
+                    ->minValue(0),
+
                 Textarea::make('description')
                     ->required()
                     ->rows(3),
@@ -47,7 +54,7 @@ class DiscountCardResource extends Resource
                 FileUpload::make('image')
                     ->image()
                     ->required()
-                    ->directory('discount-cards')
+                    ->directory('offer-cards')
                     ->disk('s3')
                     ->visibility('publico')
                     ->maxSize(2048)
@@ -74,6 +81,10 @@ class DiscountCardResource extends Resource
                     ->searchable()
                     ->weight('bold'),
 
+                TextColumn::make('price')
+                    ->money('PKR')
+                    ->sortable(),
+
                 TextColumn::make('description')
                     ->limit(50),
 
@@ -93,9 +104,9 @@ class DiscountCardResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListDiscountCards::route('/'),
-            'create' => Pages\CreateDiscountCard::route('/create'),
-            'edit' => Pages\EditDiscountCard::route('/{record}/edit'),
+            'index' => Pages\ListOfferCards::route('/'),
+            'create' => Pages\CreateOfferCard::route('/create'),
+            'edit' => Pages\EditOfferCard::route('/{record}/edit'),
         ];
     }
 }

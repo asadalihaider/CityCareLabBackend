@@ -2,16 +2,16 @@
 
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\CustomerAuthController;
-use App\Http\Controllers\Api\DiscountCardController;
 use App\Http\Controllers\Api\FeedbackController;
 use App\Http\Controllers\Api\LabCenterController;
 use App\Http\Controllers\Api\LabOfferController;
+use App\Http\Controllers\Api\OfferCardController;
 use App\Http\Controllers\Api\OperatingCityController;
 use App\Http\Controllers\Api\TestCategoryController;
 use App\Http\Controllers\Api\TestController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('discount-cards', [DiscountCardController::class, 'index']);
+Route::get('offer-cards', [OfferCardController::class, 'index']);
 Route::get('lab-offers', [LabOfferController::class, 'index']);
 Route::get('operating-cities', [OperatingCityController::class, 'index']);
 Route::get('lab-centers', [LabCenterController::class, 'index']);

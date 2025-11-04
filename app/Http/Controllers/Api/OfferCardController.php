@@ -2,30 +2,31 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\DiscountCard;
+use App\Models\OfferCard;
 use Illuminate\Http\JsonResponse;
 
-class DiscountCardController extends BaseApiController
+class OfferCardController extends BaseApiController
 {
     public function index(): JsonResponse
     {
         return $this->executeWithExceptionHandling(function () {
-            $discountCards = DiscountCard::active()
-                ->select(['id', 'title', 'description', 'link', 'image'])
+            $offerCards = OfferCard::active()
+                ->select(['id', 'title', 'description', 'link', 'image', 'price'])
                 ->orderBy('created_at', 'desc')
                 ->paginate(10);
 
-            $discountCards->getCollection()->transform(function ($card) {
+            $offerCards->getCollection()->transform(function ($card) {
                 return [
                     'id' => $card->id,
                     'title' => $card->title,
                     'description' => $card->description,
                     'link' => $card->link,
                     'image' => $card->image_url,
+                    'price' => $card->price,
                 ];
             });
 
-            return $this->paginatedResponse($discountCards, 'Discount cards retrieved successfully');
+            return $this->paginatedResponse($offerCards, 'Discount cards retrieved successfully');
         }, 'Failed to retrieve discount cards');
     }
 }
