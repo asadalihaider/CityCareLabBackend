@@ -80,7 +80,7 @@ class CustomerAuthController extends BaseApiController
     {
         return $this->executeWithExceptionHandling(function () use ($request) {
             $customer = $request->user();
-            $customer->load('city');
+            $customer->load(['city', 'customerCards.discountCard.offerCard']);
 
             $data = [
                 'id' => $customer->id,
@@ -98,6 +98,27 @@ class CustomerAuthController extends BaseApiController
                 'status' => $customer->status,
                 'mobile_verified' => $customer->isMobileVerified(),
                 'email_verified' => $customer->isEmailVerified(),
+                'cards' => $customer->customerCards->map(function ($customerCard) {
+                    $card = $customerCard->discountCard;
+
+                    return [
+                        'id' => $card->id,
+                        'serial_number' => $card->serial_number,
+                        'expiry_date' => $card->expiry_date->format('Y-m-d'),
+                        'status' => $card->status->value,
+                        'is_active' => $card->is_active,
+                        'is_expired' => $card->isExpired(),
+                        'offer_card' => [
+                            'id' => $card->offerCard->id,
+                            'title' => $card->offerCard->title,
+                            'description' => $card->offerCard->description,
+                            'features' => $card->offerCard->features,
+                            'price' => $card->offerCard->price,
+                            'image' => $card->offerCard->image ? Storage::disk('s3')->temporaryUrl($card->offerCard->image, now()->addDays(1)) : null,
+                        ],
+                        'attached_at' => $customerCard->created_at->toISOString(),
+                    ];
+                }),
             ];
 
             return $this->successResponse($data, 'Profile retrieved successfully');

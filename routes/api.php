@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\BookingController;
+use App\Http\Controllers\Api\CardController;
 use App\Http\Controllers\Api\CustomerAuthController;
 use App\Http\Controllers\Api\FeedbackController;
 use App\Http\Controllers\Api\LabCenterController;
@@ -37,4 +38,7 @@ Route::middleware(['auth:sanctum'])->prefix('customer')->group(function () {
     Route::post('feedback', [FeedbackController::class, 'store']);
     Route::get('test-history', [TestController::class, 'history']);
     Route::apiResource('bookings', BookingController::class)->except(['destroy']);
+
+    Route::post('card', [CardController::class, 'activateCard']);
+    Route::delete('card', [CardController::class, 'deactivateCard']);
 });

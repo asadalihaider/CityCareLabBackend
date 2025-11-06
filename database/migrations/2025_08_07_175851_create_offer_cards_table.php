@@ -6,26 +6,22 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('offer_cards', function (Blueprint $table) {
             $table->id();
             $table->string('title');
             $table->text('description');
+            $table->json('features')->nullable();
             $table->string('link')->nullable();
+            $table->string('serial_prefix', 10)->default('CARD');
             $table->string('image')->nullable();
-            $table->decimal('price', 10, 2)->default(500.00)->comment('Price in PKR');
+            $table->decimal('price', 10, 2)->default(0.00);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('offer_cards');

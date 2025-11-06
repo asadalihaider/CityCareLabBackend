@@ -87,4 +87,14 @@ class Customer extends Authenticatable
     {
         return $this->belongsTo(OperatingCity::class, 'city_id');
     }
+
+    public function customerCards()
+    {
+        return $this->hasMany(CustomerCard::class);
+    }
+
+    public function activeCard()
+    {
+        return $this->hasOne(CustomerCard::class)->active();
+    }
 }
