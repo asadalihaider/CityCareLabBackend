@@ -1,6 +1,27 @@
 <div class="space-y-4">
     <div class="flex flex-col gap-4">
         <div class="w-full">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Patient Information</h3>
+            <div class="mt-2 space-y-2">
+                <div class="w-full flex items-center justify-between space-x-2">
+                    <p class="text-sm font-medium">Customer</p>
+                    <p class="text-sm">{{ $booking->customer?->name ?? 'N/A' }}</p>
+                </div>
+                <div class="w-full flex items-center justify-between space-x-2">
+                    <p class="text-sm font-medium">Patient Name</p>
+                    <p class="text-sm">{{ $booking->patient_name }}</p>
+                </div>
+                <div class="w-full flex items-center justify-between space-x-2">
+                    <p class="text-sm font-medium">Contact Number</p>
+                    <p class="text-sm">{{ $booking->contact_number }}</p>
+                </div>
+                <div class="w-full flex items-center justify-between space-x-2">
+                    <p class="text-sm font-medium">Address</p>
+                    <p class="text-sm">{{ $booking->location['city'] }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="w-full">
             <h3 class="text-lg font-medium text-gray-900 dark:text-white">Booking Information</h3>
             <div class="mt-2 space-y-2">
                 <div class="w-full flex items-center justify-between space-x-2">
@@ -22,28 +43,35 @@
                 </div>
             </div>
         </div>
+        @if ($booking->booking_items)
+            <div class="w-full">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white">Booking Items</h3>
+                <div class="mt-2 w-full divide-y">
+                    @php $total = 0; @endphp
+                    @foreach ($booking->booking_items as $index => $item)
+                        @php $total += $item['price'] ?? 0; @endphp
+                        <div class="w-full flex items-center justify-between gap-2 py-2">
+                            <div class="flex flex-1 items-center gap-2">
+                                <span class="text-sm font-medium text-gray-900 dark:text-gray-300">{{ $index + 1 }}.</span>
+                                <span class="text-sm font-medium text-gray-900 dark:text-white">{{ $item['title'] ?? 'N/A' }}</span>
 
-        <div class="w-full">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white">Patient Information</h3>
-            <div class="mt-2 space-y-2">
-                <div class="w-full flex items-center justify-between space-x-2">
-                    <p class="text-sm font-medium">Customer</p>
-                    <p class="text-sm">{{ $booking->customer?->name ?? 'N/A' }}</p>
-                </div>
-                <div class="w-full flex items-center justify-between space-x-2">
-                    <p class="text-sm font-medium">Patient Name</p>
-                    <p class="text-sm">{{ $booking->patient_name }}</p>
-                </div>
-                <div class="w-full flex items-center justify-between space-x-2">
-                    <p class="text-sm font-medium">Contact Number</p>
-                    <p class="text-sm">{{ $booking->contact_number }}</p>
-                </div>
-                <div class="w-full flex items-center justify-between space-x-2">
-                    <p class="text-sm font-medium">Address</p>
-                    <p class="text-sm">{{ $booking->address }}</p>
+                                @if(isset($item['discount']) && $item['discount'] > 0)
+                                    <x-filament::badge color="success">{{ $item['discount'] }}% Off</x-filament::badge>
+                                @endif
+                            </div>
+
+                            <div class="text-sm font-medium text-gray-900 dark:text-white">
+                                Rs {{ number_format($item['price'] ?? 0, 2) }}/-
+                            </div>
+                        </div>
+                    @endforeach
+                    <div class="flex justify-between items-center border-t pt-2">
+                        <p class="text-sm font-semibold text-gray-900 dark:text-white">Total</p>
+                        <p class="text-sm font-semibold text-gray-900 dark:text-white">Rs {{ number_format($total, 2) }}/-</p>
+                    </div>
                 </div>
             </div>
-        </div>
+        @endif
     </div>
 
     @if ($booking->purpose)

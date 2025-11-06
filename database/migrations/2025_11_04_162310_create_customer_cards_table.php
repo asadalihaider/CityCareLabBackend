@@ -14,7 +14,7 @@ return new class extends Migration
             $table->foreignId('discount_card_id')->constrained('discount_cards')->onDelete('cascade');
             $table->timestamps();
 
-            $table->primary(['customer_id', 'discount_card_id']);
+            $table->unique(['customer_id', 'discount_card_id']);
         });
     }
 

@@ -38,6 +38,7 @@ enum BookingStatus: string
             ])->mapWithKeys(fn ($status) => [$status->value => $status->label()])->toArray(),
 
             BookingType::TEST => self::toOptions(),
+            BookingType::DISCOUNT_CARD => self::toOptions(),
         };
     }
 }

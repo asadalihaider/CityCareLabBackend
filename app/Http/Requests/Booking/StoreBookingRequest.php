@@ -15,15 +15,20 @@ class StoreBookingRequest extends FormRequest
 
     public function rules(): array
     {
+        $bookingItemRule = Rule::requiredIf(in_array($this->input('booking_type'), [
+            BookingType::TEST->value,
+            BookingType::DISCOUNT_CARD->value,
+        ]));
+
         return [
             'patient_name' => ['required', 'string', 'max:255'],
             'contact_number' => ['required', 'string', 'max:20'],
             'booking_type' => ['required', Rule::in(BookingType::values())],
             'purpose' => ['nullable', 'string', 'max:500'],
-            'booking_items' => ['nullable', 'array'],
-            'booking_items.*.id' => ['required_if:booking_type,test', 'integer', 'exists:tests,id'],
-            'booking_items.*.title' => ['required_if:booking_type,test', 'string', 'max:255'],
-            'booking_items.*.price' => ['required_if:booking_type,test', 'numeric', 'min:0'],
+            'booking_items' => [$bookingItemRule, 'array'],
+            'booking_items.*.id' => [$bookingItemRule, 'integer'],
+            'booking_items.*.title' => [$bookingItemRule, 'string', 'max:255'],
+            'booking_items.*.price' => ['bail', $bookingItemRule, 'numeric', 'min:0'],
             'booking_items.*.discount' => ['nullable', 'numeric', 'min:0'],
             'location' => ['nullable', 'array'],
             'location.latitude' => ['nullable', 'numeric', 'between:-90,90'],
@@ -33,7 +38,7 @@ class StoreBookingRequest extends FormRequest
             'location.state' => ['nullable', 'string', 'max:255'],
             'location.postal_code' => ['nullable', 'string', 'max:20'],
             'location.country' => ['nullable', 'string', 'max:255'],
-            'booking_date' => ['nullable', 'date', 'after:now'],
+            'booking_date' => ['required', 'date', 'after_or_equal:today'],
         ];
     }
 
@@ -47,16 +52,19 @@ class StoreBookingRequest extends FormRequest
             'booking_type.required' => 'Booking type is required',
             'booking_type.in' => 'Invalid booking type selected',
             'purpose.max' => 'Purpose cannot exceed 500 characters',
-            'booking_items.array' => 'Booking items must be an array',
-            'booking_items.*.id.required_if' => 'Test ID is required for test items',
-            'booking_items.*.id.exists' => 'Selected test does not exist',
-            'booking_items.*.title.required_if' => 'Test title is required for test items',
-            'booking_items.*.title.max' => 'Test title cannot exceed 255 characters',
-            'booking_items.*.price.required_if' => 'Test price is required for test items',
-            'booking_items.*.price.numeric' => 'Test price must be a valid number',
-            'booking_items.*.price.min' => 'Test price cannot be negative',
-            'booking_items.*.discount.numeric' => 'Test discount must be a valid number',
-            'booking_items.*.discount.min' => 'Test discount cannot be negative',
+            'booking_items.required_if' => 'Booking items are required for the selected booking type.',
+            'booking_items.array' => 'Booking items must be a valid array.',
+            'booking_items.*.id.required_if' => 'Booking item must have a valid ID.',
+            'booking_items.*.id.integer' => 'Invalid booking item ID.',
+            'booking_items.*.id.exists' => 'The selected booking item does not exist.',
+            'booking_items.*.title.required_if' => 'Booking item must have a title.',
+            'booking_items.*.title.string' => 'The item title must be a valid string.',
+            'booking_items.*.title.max' => 'The item title cannot exceed 255 characters.',
+            'booking_items.*.price.required_if' => 'Booking item must have a price.',
+            'booking_items.*.price.numeric' => 'Invalid booking item price.',
+            'booking_items.*.price.min' => 'The item price cannot be negative.',
+            'booking_items.*.discount.numeric' => 'Invalid booking item discount.',
+            'booking_items.*.discount.min' => 'The item discount cannot be negative.',
             'location.array' => 'Location must be an object',
             'location.latitude.between' => 'Latitude must be between -90 and 90',
             'location.longitude.between' => 'Longitude must be between -180 and 180',
@@ -65,7 +73,8 @@ class StoreBookingRequest extends FormRequest
             'location.state.max' => 'State cannot exceed 255 characters',
             'location.postal_code.max' => 'Postal code cannot exceed 20 characters',
             'location.country.max' => 'Country cannot exceed 255 characters',
-            'booking_date.after' => 'Booking date must be in the future',
+            'booking_date.required' => 'Booking date is required.',
+            'booking_date.after_or_equal' => 'Booking date must be today or a future date.',
         ];
     }
 
@@ -81,8 +90,19 @@ class StoreBookingRequest extends FormRequest
 
     public function withValidator($validator)
     {
+        $validator->sometimes(
+            'booking_items.*.id',
+            'exists:tests,id',
+            fn ($input) => $input->booking_type === BookingType::TEST->value
+        );
+
+        $validator->sometimes(
+            'booking_items.*.id',
+            'exists:discount_cards,id',
+            fn ($input) => $input->booking_type === BookingType::DISCOUNT_CARD->value
+        );
+
         $validator->after(function ($validator) {
-            // Validate location coordinates are provided together
             $location = $this->input('location', []);
 
             if (isset($location['latitude']) && ! isset($location['longitude'])) {

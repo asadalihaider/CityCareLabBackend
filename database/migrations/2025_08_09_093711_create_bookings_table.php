@@ -20,7 +20,7 @@ return new class extends Migration
             $table->text('purpose')->nullable();
             $table->json('booking_items')->nullable();
             $table->json('location')->nullable();
-            $table->timestamp('booking_date')->default(now());
+            $table->timestamp('booking_date');
             $table->timestamps();
         });
     }
