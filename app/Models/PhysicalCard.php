@@ -2,18 +2,18 @@
 
 namespace App\Models;
 
-use App\Models\Enum\DiscountCardStatus;
+use App\Models\Enum\PhysicalCardStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-class DiscountCard extends Model
+class PhysicalCard extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'offer_card_id',
+        'health_card_id',
         'serial_number',
         'expiry_date',
         'status',
@@ -22,14 +22,14 @@ class DiscountCard extends Model
 
     protected $casts = [
         'expiry_date' => 'date',
-        'status' => DiscountCardStatus::class,
+        'status' => PhysicalCardStatus::class,
         'is_active' => 'boolean',
     ];
 
     // Relationships
-    public function offerCard(): BelongsTo
+    public function healthCard(): BelongsTo
     {
-        return $this->belongsTo(OfferCard::class);
+        return $this->belongsTo(HealthCard::class);
     }
 
     public function customerCard(): HasOne
@@ -40,7 +40,7 @@ class DiscountCard extends Model
     // Scopes
     public function scopeAvailable($query)
     {
-        return $query->where('status', DiscountCardStatus::AVAILABLE)
+        return $query->where('status', PhysicalCardStatus::AVAILABLE)
             ->where('is_active', true)
             ->where('expiry_date', '>', now());
     }
@@ -48,7 +48,7 @@ class DiscountCard extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', true)
-            ->whereNotIn('status', [DiscountCardStatus::DEACTIVATED, DiscountCardStatus::EXPIRED])
+            ->whereNotIn('status', [PhysicalCardStatus::DEACTIVATED, PhysicalCardStatus::EXPIRED])
             ->where('expiry_date', '>', now());
     }
 
@@ -70,12 +70,12 @@ class DiscountCard extends Model
 
     public function markAsActivated(): void
     {
-        $this->update(['status' => DiscountCardStatus::ATTACHED]);
+        $this->update(['status' => PhysicalCardStatus::ACTIVATED]);
     }
 
     public function markAsAvailable(): void
     {
-        $this->update(['status' => DiscountCardStatus::AVAILABLE]);
+        $this->update(['status' => PhysicalCardStatus::AVAILABLE]);
     }
 
     public function deactivate(): void

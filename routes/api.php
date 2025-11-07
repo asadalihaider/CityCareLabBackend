@@ -4,15 +4,15 @@ use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\CardController;
 use App\Http\Controllers\Api\CustomerAuthController;
 use App\Http\Controllers\Api\FeedbackController;
+use App\Http\Controllers\Api\HealthCardController;
 use App\Http\Controllers\Api\LabCenterController;
 use App\Http\Controllers\Api\LabOfferController;
-use App\Http\Controllers\Api\OfferCardController;
 use App\Http\Controllers\Api\OperatingCityController;
 use App\Http\Controllers\Api\TestCategoryController;
 use App\Http\Controllers\Api\TestController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('offer-cards', [OfferCardController::class, 'index']);
+Route::get('health-cards', [HealthCardController::class, 'index']);
 Route::get('lab-offers', [LabOfferController::class, 'index']);
 Route::get('operating-cities', [OperatingCityController::class, 'index']);
 Route::get('lab-centers', [LabCenterController::class, 'index']);
@@ -40,5 +40,5 @@ Route::middleware(['auth:sanctum'])->prefix('customer')->group(function () {
     Route::apiResource('bookings', BookingController::class)->except(['destroy']);
 
     Route::post('card', [CardController::class, 'activateCard']);
-    Route::delete('card', [CardController::class, 'deactivateCard']);
+    Route::put('card', [CardController::class, 'updateCard']);
 });

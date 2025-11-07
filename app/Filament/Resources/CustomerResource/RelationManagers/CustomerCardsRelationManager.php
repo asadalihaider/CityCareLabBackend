@@ -18,9 +18,9 @@ class CustomerCardsRelationManager extends RelationManager
     {
         return $form
             ->schema([
-                Forms\Components\Select::make('discount_card_id')
-                    ->label('Discount Card')
-                    ->relationship('discountCard', 'serial_number',
+                Forms\Components\Select::make('physical_card_id')
+                    ->label('Physical Card')
+                    ->relationship('physicalCard', 'serial_number',
                         fn (Builder $query) => $query->available()
                     )
                     ->required()
@@ -38,46 +38,46 @@ class CustomerCardsRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->recordTitleAttribute('discountCard.serial_number')
+            ->recordTitleAttribute('physicalCard.serial_number')
             ->columns([
-                Tables\Columns\TextColumn::make('discountCard.serial_number')
+                Tables\Columns\TextColumn::make('physicalCard.serial_number')
                     ->label('Card Serial')
                     ->searchable()
                     ->copyable(),
 
-                Tables\Columns\TextColumn::make('discountCard.expiry_date')
+                Tables\Columns\TextColumn::make('physicalCard.expiry_date')
                     ->label('Card Expiry')
                     ->date()
-                    ->color(fn ($record) => $record->discountCard->expiry_date <= now() ? 'danger' : 'primary'),
+                    ->color(fn ($record) => $record->physicalCard->expiry_date <= now() ? 'danger' : 'primary'),
 
-                Tables\Columns\IconColumn::make('discountCard.is_active')
+                Tables\Columns\IconColumn::make('physicalCard.is_active')
                     ->boolean()
                     ->label('Card Active'),
 
                 Tables\Columns\TextColumn::make('status')
                     ->label('Status')
                     ->getStateUsing(function (CustomerCard $record) {
-                        if (! $record->discountCard->is_active) {
-                            return 'Card Deactivated';
-                        }
-                        if ($record->discountCard->isExpired()) {
-                            return 'Expired';
-                        }
-                        if ($record->discountCard->status === \App\Models\Enum\DiscountCardStatus::ATTACHED) {
+                        if ($record->physicalCard->is_active) {
                             return 'Active';
+                        }
+                        if (! $record->physicalCard->is_active) {
+                            return 'Deactivated';
+                        }
+                        if ($record->physicalCard->isExpired()) {
+                            return 'Expired';
                         }
 
                         return 'Unknown';
                     })
                     ->colors([
                         'success' => 'Active',
-                        'warning' => 'Card Deactivated',
+                        'warning' => 'Deactivated',
                         'danger' => ['Expired', 'Unknown'],
                     ])
                     ->badge(),
 
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Attached At')
+                    ->label('Activated At')
                     ->dateTime()
                     ->sortable(),
             ])
@@ -89,20 +89,18 @@ class CustomerCardsRelationManager extends RelationManager
 
                 Tables\Filters\Filter::make('expired_cards')
                     ->label('Expired Cards')
-                    ->query(fn (Builder $query): Builder => $query->whereHas('discountCard', fn ($q) => $q->where('expiry_date', '<=', now())))
+                    ->query(fn (Builder $query): Builder => $query->whereHas('physicalCard', fn ($q) => $q->where('expiry_date', '<=', now())))
                     ->toggle(),
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()
                     ->mutateFormDataUsing(function (array $data) {
-                        // Auto-set customer_id
                         $data['customer_id'] = $this->ownerRecord->id;
 
                         return $data;
                     })
                     ->using(function (array $data) {
-                        // Use the attachCard method
-                        return CustomerCard::attachCard($data['customer_id'], $data['discount_card_id']);
+                        return CustomerCard::activateCard($data['customer_id'], $data['physical_card_id']);
                     }),
             ])
             ->actions([

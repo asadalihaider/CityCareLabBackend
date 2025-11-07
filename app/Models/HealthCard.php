@@ -5,11 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class OfferCard extends Model
+class HealthCard extends Model
 {
     use HasFactory;
 
-    protected $table = 'offer_cards';
+    protected $table = 'health_cards';
 
     protected $fillable = [
         'title',
@@ -28,15 +28,6 @@ class OfferCard extends Model
         'features' => 'array',
     ];
 
-    public function getImageUrlAttribute(): ?string
-    {
-        if ($this->image) {
-            return asset('storage/'.$this->image);
-        }
-
-        return null;
-    }
-
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
@@ -44,10 +35,10 @@ class OfferCard extends Model
 
     public function physicalCards()
     {
-        return $this->hasMany(DiscountCard::class, 'offer_card_id');
+        return $this->hasMany(PhysicalCard::class, 'health_card_id');
     }
 
-    public function generateDiscountCards(int $quantity, int $tenureYears = 2): array
+    public function generatePhysicalCards(int $quantity, int $tenureYears = 2): array
     {
         $cards = [];
         $expiryDate = now()->addYears($tenureYears);
@@ -55,11 +46,11 @@ class OfferCard extends Model
         for ($i = 1; $i <= $quantity; $i++) {
             $serialNumber = $this->generateSerialNumber();
 
-            $card = DiscountCard::create([
-                'offer_card_id' => $this->id,
+            $card = PhysicalCard::create([
+                'health_card_id' => $this->id,
                 'serial_number' => $serialNumber,
                 'expiry_date' => $expiryDate,
-                'status' => \App\Models\Enum\DiscountCardStatus::AVAILABLE,
+                'status' => \App\Models\Enum\PhysicalCardStatus::AVAILABLE,
                 'is_active' => true,
             ]);
 
@@ -76,7 +67,7 @@ class OfferCard extends Model
         do {
             $randomNumber = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
             $serialNumber = $prefix.$randomNumber;
-        } while (DiscountCard::where('serial_number', $serialNumber)->exists());
+        } while (PhysicalCard::where('serial_number', $serialNumber)->exists());
 
         return $serialNumber;
     }

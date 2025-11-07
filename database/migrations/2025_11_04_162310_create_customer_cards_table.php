@@ -11,10 +11,10 @@ return new class extends Migration
         Schema::create('customer_cards', function (Blueprint $table) {
             $table->id();
             $table->foreignId('customer_id')->constrained('customers')->onDelete('cascade');
-            $table->foreignId('discount_card_id')->constrained('discount_cards')->onDelete('cascade');
+            $table->foreignId('physical_card_id')->constrained('physical_cards')->onDelete('cascade');
             $table->timestamps();
 
-            $table->unique(['customer_id', 'discount_card_id']);
+            $table->unique(['customer_id', 'physical_card_id']);
         });
     }
 

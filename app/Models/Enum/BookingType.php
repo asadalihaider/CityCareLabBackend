@@ -8,14 +8,14 @@ enum BookingType: string
 
     case TEST = 'test';
     case CONSULTATION = 'consultation';
-    case DISCOUNT_CARD = 'discount_card';
+    case HEALTH_CARD = 'health_card';
 
     public function label(): string
     {
         return match ($this) {
             self::TEST => 'Test',
             self::CONSULTATION => 'Consultation',
-            self::DISCOUNT_CARD => 'Discount Card',
+            self::HEALTH_CARD => 'Health Card',
         };
     }
 
@@ -24,7 +24,7 @@ enum BookingType: string
         return match ($this) {
             self::TEST => 'primary',
             self::CONSULTATION => 'success',
-            self::DISCOUNT_CARD => 'warning',
+            self::HEALTH_CARD => 'warning',
         };
     }
 }

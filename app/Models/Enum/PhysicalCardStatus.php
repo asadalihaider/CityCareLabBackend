@@ -2,12 +2,12 @@
 
 namespace App\Models\Enum;
 
-enum DiscountCardStatus: string
+enum PhysicalCardStatus: string
 {
     use BaseEnum;
 
     case AVAILABLE = 'available';
-    case ATTACHED = 'attached';
+    case ACTIVATED = 'activated';
     case EXPIRED = 'expired';
     case DEACTIVATED = 'deactivated';
 
@@ -15,7 +15,7 @@ enum DiscountCardStatus: string
     {
         return match ($this) {
             self::AVAILABLE => 'Available',
-            self::ATTACHED => 'Attached',
+            self::ACTIVATED => 'Activated',
             self::EXPIRED => 'Expired',
             self::DEACTIVATED => 'Deactivated',
         };
@@ -25,7 +25,7 @@ enum DiscountCardStatus: string
     {
         return match ($this) {
             self::AVAILABLE => 'primary',
-            self::ATTACHED => 'success',
+            self::ACTIVATED => 'success',
             self::EXPIRED => 'danger',
             self::DEACTIVATED => 'gray',
         };
@@ -34,8 +34,8 @@ enum DiscountCardStatus: string
     public function description(): string
     {
         return match ($this) {
-            self::AVAILABLE => 'Card is available for attachment',
-            self::ATTACHED => 'Card is currently attached to a customer',
+            self::AVAILABLE => 'Card is available for activation',
+            self::ACTIVATED => 'Card is currently activated by a customer',
             self::EXPIRED => 'Card has expired and cannot be used',
             self::DEACTIVATED => 'Card has been deactivated by admin',
         };

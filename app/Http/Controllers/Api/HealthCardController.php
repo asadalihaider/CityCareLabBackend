@@ -2,31 +2,32 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\OfferCard;
+use App\Models\HealthCard;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Storage;
 
-class OfferCardController extends BaseApiController
+class HealthCardController extends BaseApiController
 {
     public function index(): JsonResponse
     {
         return $this->executeWithExceptionHandling(function () {
-            $offerCards = OfferCard::active()
+            $healthCards = HealthCard::active()
                 ->select(['id', 'title', 'description', 'link', 'image', 'price'])
                 ->orderBy('created_at', 'desc')
                 ->paginate(10);
 
-            $offerCards->getCollection()->transform(function ($card) {
+            $healthCards->getCollection()->transform(function ($card) {
                 return [
                     'id' => $card->id,
                     'title' => $card->title,
                     'description' => $card->description,
                     'link' => $card->link,
-                    'image' => $card->image_url,
+                    'image' => $card->image ? Storage::disk('s3')->temporaryUrl($card->image, now()->addDays(1)) : null,
                     'price' => $card->price,
                 ];
             });
 
-            return $this->paginatedResponse($offerCards, 'Discount cards retrieved successfully');
-        }, 'Failed to retrieve discount cards');
+            return $this->paginatedResponse($healthCards, 'Health cards retrieved successfully');
+        }, 'Failed to retrieve health cards');
     }
 }

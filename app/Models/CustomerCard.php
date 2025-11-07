@@ -12,7 +12,7 @@ class CustomerCard extends Model
 
     protected $fillable = [
         'customer_id',
-        'discount_card_id',
+        'physical_card_id',
     ];
 
     protected $casts = [
@@ -24,15 +24,15 @@ class CustomerCard extends Model
         return $this->belongsTo(Customer::class);
     }
 
-    public function discountCard(): BelongsTo
+    public function physicalCard(): BelongsTo
     {
-        return $this->belongsTo(DiscountCard::class);
+        return $this->belongsTo(PhysicalCard::class);
     }
 
     public function scopeActive($query)
     {
-        return $query->whereHas('discountCard', function ($q) {
-            $q->where('status', \App\Models\Enum\DiscountCardStatus::ATTACHED)
+        return $query->whereHas('physicalCard', function ($q) {
+            $q->where('status', \App\Models\Enum\PhysicalCardStatus::ACTIVATED)
                 ->where('is_active', true)
                 ->where('expiry_date', '>', now());
         });
@@ -45,19 +45,19 @@ class CustomerCard extends Model
 
     public function removeCard(): void
     {
-        $this->discountCard->markAsAvailable();
+        $this->physicalCard->markAsAvailable();
 
         $this->delete();
     }
 
-    public static function attachCard($customerId, $discountCardId): self
+    public static function activateCard($customerId, $physicalCardId): self
     {
         $customerCard = self::create([
             'customer_id' => $customerId,
-            'discount_card_id' => $discountCardId,
+            'physical_card_id' => $physicalCardId,
         ]);
 
-        $customerCard->discountCard->markAsActivated();
+        $customerCard->physicalCard->markAsActivated();
 
         return $customerCard;
     }
@@ -65,12 +65,13 @@ class CustomerCard extends Model
     public function getCardDetailsAttribute(): array
     {
         return [
-            'id' => $this->discountCard->id,
-            'identifier' => $this->discountCard->serial_number,
-            'expiry_date' => $this->discountCard->expiry_date->format('Y-m-d'),
-            'status' => $this->discountCard->status->value,
-            'attached_at' => $this->created_at->toISOString(),
-            'updated_at' => $this->updated_at->toISOString(),
+            'id' => $this->physicalCard->id,
+            'identifier' => $this->physicalCard->serial_number,
+            'expiry_date' => $this->physicalCard->expiry_date->format('Y-m-d'),
+            'status' => $this->physicalCard->status->value,
+            'is_active' => $this->physicalCard->is_active,
+            'activated_at' => $this->created_at->toISOString(),
+            'deactivated_at' => $this->updated_at->toISOString(),
         ];
     }
 }

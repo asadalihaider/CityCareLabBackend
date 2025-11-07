@@ -17,7 +17,7 @@ class StoreBookingRequest extends FormRequest
     {
         $bookingItemRule = Rule::requiredIf(in_array($this->input('booking_type'), [
             BookingType::TEST->value,
-            BookingType::DISCOUNT_CARD->value,
+            BookingType::HEALTH_CARD->value,
         ]));
 
         return [
@@ -98,8 +98,8 @@ class StoreBookingRequest extends FormRequest
 
         $validator->sometimes(
             'booking_items.*.id',
-            'exists:discount_cards,id',
-            fn ($input) => $input->booking_type === BookingType::DISCOUNT_CARD->value
+            'exists:physical_cards,id',
+            fn ($input) => $input->booking_type === BookingType::HEALTH_CARD->value
         );
 
         $validator->after(function ($validator) {

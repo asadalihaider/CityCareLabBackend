@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Resources\OfferCardResource\RelationManagers;
+namespace App\Filament\Resources\HealthCardResource\RelationManagers;
 
-use App\Models\Enum\DiscountCardStatus;
+use App\Models\Enum\PhysicalCardStatus;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -21,7 +21,7 @@ class PhysicalCardsRelationManager extends RelationManager
                 Forms\Components\TextInput::make('serial_number')
                     ->label('Serial Number')
                     ->required()
-                    ->unique('discount_cards', 'serial_number', ignoreRecord: true)
+                    ->unique('physical_cards', 'serial_number', ignoreRecord: true)
                     ->maxLength(50)
                     ->placeholder('BLUE2411051001')
                     ->helperText('Unique identifier printed on physical card'),
@@ -35,7 +35,7 @@ class PhysicalCardsRelationManager extends RelationManager
                 Forms\Components\Toggle::make('is_active')
                     ->label('Active')
                     ->default(true)
-                    ->helperText('Inactive cards cannot be attached to customers'),
+                    ->helperText('Inactive cards cannot be activated for customers'),
             ]);
     }
 
@@ -55,31 +55,24 @@ class PhysicalCardsRelationManager extends RelationManager
                         return $record->expiry_date <= now() ? 'danger' : 'primary';
                     }),
 
-                Tables\Columns\IconColumn::make('is_active')
-                    ->boolean()
-                    ->label('Active'),
-
                 Tables\Columns\TextColumn::make('status')
                     ->label('Status')
                     ->badge()
-                    ->getStateUsing(function ($record) {
-                        return $record->status->label();
-                    })
-                    ->colors([
-                        'success' => DiscountCardStatus::AVAILABLE->value,
-                        'info' => DiscountCardStatus::ATTACHED->value,
-                        'danger' => DiscountCardStatus::DEACTIVATED->value,
-                        'warning' => DiscountCardStatus::EXPIRED->value,
-                    ]),
+                    ->getStateUsing(fn ($record) => $record->status->label())
+                    ->color(fn ($record) => $record->status?->color()),
 
                 Tables\Columns\TextColumn::make('customerCard.customer.name')
-                    ->label('Attached To')
-                    ->placeholder('Not attached')
+                    ->label('Activated By')
+                    ->placeholder('Not activated')
                     ->getStateUsing(function ($record) {
                         $customerCard = $record->customerCard;
 
                         return $customerCard ? $customerCard->customer->name : null;
                     }),
+
+                Tables\Columns\IconColumn::make('is_active')
+                    ->boolean()
+                    ->label('Active'),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Created')
@@ -94,11 +87,11 @@ class PhysicalCardsRelationManager extends RelationManager
 
                 Tables\Filters\SelectFilter::make('status')
                     ->label('Status')
-                    ->options(DiscountCardStatus::toOptions()),
+                    ->options(PhysicalCardStatus::toOptions()),
             ])
             ->headerActions([
                 Tables\Actions\Action::make('generate_cards')
-                    ->label('Generate Multiple Cards')
+                    ->label('Generate Cards')
                     ->icon('heroicon-o-plus-circle')
                     ->form([
                         Forms\Components\TextInput::make('quantity')
@@ -118,11 +111,11 @@ class PhysicalCardsRelationManager extends RelationManager
                             ->helperText('Years from today for card expiry'),
                     ])
                     ->action(function (array $data) {
-                        $cards = $this->ownerRecord->generateDiscountCards($data['quantity'], $data['tenure_years']);
+                        $cards = $this->ownerRecord->generatePhysicalCards($data['quantity'], $data['tenure_years']);
 
                         Notification::make()
                             ->title('Cards Generated Successfully!')
-                            ->body('Generated '.count($cards).' discount cards.')
+                            ->body('Generated '.count($cards).' physical cards.')
                             ->success()
                             ->send();
                     })
@@ -176,7 +169,7 @@ class PhysicalCardsRelationManager extends RelationManager
 
                     Tables\Actions\DeleteBulkAction::make()
                         ->action(function ($records) {
-                            // Only delete cards that are not attached to customers
+                            // Only delete cards that are not activated to customers
                             $eligibleRecords = $records->filter(function ($record) {
                                 return ! $record->customerCard;
                             });
@@ -184,7 +177,7 @@ class PhysicalCardsRelationManager extends RelationManager
                             if ($eligibleRecords->isEmpty()) {
                                 \Filament\Notifications\Notification::make()
                                     ->title('Cannot delete cards')
-                                    ->body('Selected cards are attached to customers and cannot be deleted.')
+                                    ->body('Selected cards are activated to customers and cannot be deleted.')
                                     ->danger()
                                     ->send();
 
@@ -200,7 +193,7 @@ class PhysicalCardsRelationManager extends RelationManager
                                 ->send();
                         })
                         ->requiresConfirmation()
-                        ->modalDescription('Only cards that are not attached to customers will be deleted.'),
+                        ->modalDescription('Only cards that are not activated to customers will be deleted.'),
                 ]),
             ])
             ->defaultSort('created_at', 'desc');

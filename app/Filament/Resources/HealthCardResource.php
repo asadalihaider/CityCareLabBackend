@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\OfferCardResource\Pages;
-use App\Models\OfferCard;
+use App\Filament\Resources\HealthCardResource\Pages;
+use App\Models\HealthCard;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\Textarea;
@@ -18,9 +18,9 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 
-class OfferCardResource extends Resource
+class HealthCardResource extends Resource
 {
-    protected static ?string $model = OfferCard::class;
+    protected static ?string $model = HealthCard::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-credit-card';
 
@@ -65,7 +65,7 @@ class OfferCardResource extends Resource
                     ->label(__('Image'))
                     ->image()
                     ->required()
-                    ->directory('offer-cards')
+                    ->directory('health-cards')
                     ->disk('s3')
                     ->visibility('publico')
                     ->maxSize(2048)
@@ -100,8 +100,8 @@ class OfferCardResource extends Resource
                     ->label('Physical Cards')
                     ->counts('physicalCards'),
 
-                TextColumn::make('attached_cards_count')
-                    ->label('Attached')
+                TextColumn::make('activated_cards_count')
+                    ->label('Activated')
                     ->getStateUsing(fn ($record) => $record->physicalCards()
                         ->whereHas('customerCard')
                         ->count()),
@@ -126,7 +126,7 @@ class OfferCardResource extends Resource
                         ->action(fn ($record) => $record->update(['is_active' => false]))
                         ->visible(fn ($record) => $record->is_active)
                         ->requiresConfirmation()
-                        ->modalDescription('This will prevent new physical cards from being attached, but existing cards will remain active.'),
+                        ->modalDescription('This will prevent new physical cards from being activated, but existing cards will remain active.'),
                     Tables\Actions\Action::make('activate')
                         ->label('Activate')
                         ->icon('heroicon-o-check-circle')
@@ -142,16 +142,16 @@ class OfferCardResource extends Resource
     public static function getRelations(): array
     {
         return [
-            \App\Filament\Resources\OfferCardResource\RelationManagers\PhysicalCardsRelationManager::class,
+            \App\Filament\Resources\HealthCardResource\RelationManagers\PhysicalCardsRelationManager::class,
         ];
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListOfferCards::route('/'),
-            'create' => Pages\CreateOfferCard::route('/create'),
-            'edit' => Pages\EditOfferCard::route('/{record}/edit'),
+            'index' => Pages\ListHealthCards::route('/'),
+            'create' => Pages\CreateHealthCard::route('/create'),
+            'edit' => Pages\EditHealthCard::route('/{record}/edit'),
         ];
     }
 }
