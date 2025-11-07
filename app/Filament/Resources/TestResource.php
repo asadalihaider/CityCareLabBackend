@@ -26,10 +26,6 @@ class TestResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-beaker';
 
-    protected static ?string $navigationLabel = 'Tests';
-
-    protected static ?string $pluralModelLabel = 'Tests';
-
     public static function form(Form $form): Form
     {
         return $form

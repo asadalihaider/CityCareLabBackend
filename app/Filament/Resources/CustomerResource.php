@@ -63,7 +63,7 @@ class CustomerResource extends Resource
                 Select::make('city_id')
                     ->label(__('Location'))
                     ->required()
-                    ->relationship('location', 'name')
+                    ->relationship('city', 'name')
                     ->native(false),
 
                 FileUpload::make('image')
@@ -135,6 +135,13 @@ class CustomerResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make(),
             ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            \App\Filament\Resources\CustomerResource\RelationManagers\CustomerCardsRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

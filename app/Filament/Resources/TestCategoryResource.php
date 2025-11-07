@@ -22,10 +22,6 @@ class TestCategoryResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-squares-2x2';
 
-    protected static ?string $navigationLabel = 'Test Categories';
-
-    protected static ?string $pluralModelLabel = 'Test Categories';
-
     public static function form(Form $form): Form
     {
         return $form

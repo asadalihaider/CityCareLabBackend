@@ -21,12 +21,6 @@ class OperatingCityResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-map-pin';
 
-    protected static ?string $navigationLabel = 'Operating Cities';
-
-    protected static ?string $modelLabel = 'Operating City';
-
-    protected static ?string $pluralModelLabel = 'Operating Cities';
-
     public static function form(Form $form): Form
     {
         $pakistaniProvinces = [
@@ -64,11 +58,9 @@ class OperatingCityResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('name')
-                    ->searchable()
-                    ->weight('bold'),
+                    ->searchable(),
 
                 TextColumn::make('province')
-                    ->searchable()
                     ->badge()
                     ->color('info'),
 

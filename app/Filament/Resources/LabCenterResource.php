@@ -23,10 +23,6 @@ class LabCenterResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
 
-    protected static ?string $navigationLabel = 'Lab Centers';
-
-    protected static ?string $pluralModelLabel = 'Lab Centers';
-
     public static function form(Form $form): Form
     {
         return $form

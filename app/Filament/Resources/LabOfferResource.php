@@ -21,12 +21,6 @@ class LabOfferResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-megaphone';
 
-    protected static ?string $navigationLabel = 'Lab Offers';
-
-    protected static ?string $modelLabel = 'Lab Offer';
-
-    protected static ?string $pluralModelLabel = 'Lab Offers';
-
     public static function form(Form $form): Form
     {
         return $form

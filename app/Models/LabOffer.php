@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class LabOffer extends Model
 {
@@ -22,7 +23,7 @@ class LabOffer extends Model
     public function getImageUrlAttribute(): ?string
     {
         if ($this->image) {
-            return asset('storage/'.$this->image);
+            return Storage::disk('s3')->temporaryUrl($this->image, now()->addDays(1));
         }
 
         return null;
