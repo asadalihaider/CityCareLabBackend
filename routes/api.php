@@ -27,6 +27,7 @@ Route::prefix('customer')->group(function () {
     Route::post('resend-otp', [CustomerAuthController::class, 'resendOtp']);
     Route::post('forgot-password', [CustomerAuthController::class, 'forgotPassword']);
     Route::post('reset-password', [CustomerAuthController::class, 'resetPassword']);
+    Route::post('expo-push-token', [CustomerAuthController::class, 'setExpoPushToken']);
 });
 
 // Protected routes

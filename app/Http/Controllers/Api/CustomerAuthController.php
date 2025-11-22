@@ -6,11 +6,13 @@ use App\Http\Requests\Customer\ForgotPasswordRequest;
 use App\Http\Requests\Customer\LoginRequest;
 use App\Http\Requests\Customer\RegistrationRequest;
 use App\Http\Requests\Customer\ResetPasswordRequest;
+use App\Http\Requests\Customer\SetExpoPushTokenRequest;
 use App\Http\Requests\Customer\UpdateProfileRequest;
 use App\Http\Requests\Customer\VerifyOtpRequest;
 use App\Models\Customer;
 use App\Models\Enum\CustomerStatus;
 use App\Models\Enum\OtpType;
+use App\Models\ExpoPushToken;
 use App\Services\OtpService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -80,7 +82,7 @@ class CustomerAuthController extends BaseApiController
     {
         return $this->executeWithExceptionHandling(function () use ($request) {
             $customer = $request->user();
-            $customer->load(['city', 'customerCards']);
+            $customer->load(['city', 'customerCards', 'expoPushTokens']);
 
             $data = [
                 'id' => $customer->id,
@@ -100,6 +102,9 @@ class CustomerAuthController extends BaseApiController
                 'email_verified' => $customer->isEmailVerified(),
                 'cards' => $customer->customerCards->map(function ($customerCard) {
                     return $customerCard->card_details;
+                }),
+                'expo_tokens' => $customer->expoPushTokens->map(function ($token) {
+                    return $token->token;
                 }),
             ];
 
@@ -303,5 +308,24 @@ class CustomerAuthController extends BaseApiController
 
             return $this->successResponse(null, 'Password reset successfully. Please login with your new password.');
         }, 'Password reset failed');
+    }
+
+    public function setExpoPushToken(SetExpoPushTokenRequest $request): JsonResponse
+    {
+        return $this->executeWithExceptionHandling(function () use ($request) {
+
+            $token = $request->token;
+            $customerId = $request->customer_id ?? null;
+
+            $tokenModel = ExpoPushToken::firstOrNew(['token' => $token]);
+
+            if ($customerId) {
+                $tokenModel->customer_id = $customerId;
+            }
+
+            $tokenModel->save();
+
+            return $this->successResponse(null, 'Expo Push Token saved successfully.');
+        }, 'Failed to set expo push token');
     }
 }

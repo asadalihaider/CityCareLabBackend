@@ -97,4 +97,9 @@ class Customer extends Authenticatable
     {
         return $this->hasOne(CustomerCard::class)->active();
     }
+
+    public function expoPushTokens()
+    {
+        return $this->hasMany(ExpoPushToken::class);
+    }
 }
