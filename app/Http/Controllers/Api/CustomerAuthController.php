@@ -160,6 +160,7 @@ class CustomerAuthController extends BaseApiController
     {
         return $this->executeWithExceptionHandling(function () use ($request) {
             $request->user()->currentAccessToken()->delete();
+            ExpoPushToken::where('customer_id', $request->user()->id)->update(['customer_id' => null]);
 
             return $this->successResponse(null, 'Logout successful');
         }, 'Logout failed');
