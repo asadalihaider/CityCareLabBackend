@@ -12,7 +12,7 @@ use App\Http\Requests\Customer\VerifyOtpRequest;
 use App\Models\Customer;
 use App\Models\Enum\CustomerStatus;
 use App\Models\Enum\OtpType;
-use App\Models\ExpoPushToken;
+use App\Models\ExpoToken;
 use App\Services\OtpService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -82,7 +82,7 @@ class CustomerAuthController extends BaseApiController
     {
         return $this->executeWithExceptionHandling(function () use ($request) {
             $customer = $request->user();
-            $customer->load(['city', 'customerCards', 'expoPushTokens']);
+            $customer->load(['city', 'customerCards', 'expoTokens']);
 
             $data = [
                 'id' => $customer->id,
@@ -103,8 +103,8 @@ class CustomerAuthController extends BaseApiController
                 'cards' => $customer->customerCards->map(function ($customerCard) {
                     return $customerCard->card_details;
                 }),
-                'expo_tokens' => $customer->expoPushTokens->map(function ($token) {
-                    return $token->token;
+                'expo_tokens' => $customer->expoTokens->map(function ($token) {
+                    return $token->value;
                 }),
             ];
 
@@ -159,8 +159,15 @@ class CustomerAuthController extends BaseApiController
     public function logout(Request $request): JsonResponse
     {
         return $this->executeWithExceptionHandling(function () use ($request) {
+            $expoPushToken = $request->expo_push_token;
+
+            if ($expoPushToken) {
+                ExpoToken::where('value', $expoPushToken)
+                    ->where('owner_id', $request->user()->id)
+                    ->first()?->makeAnonymous();
+            }
+
             $request->user()->currentAccessToken()->delete();
-            ExpoPushToken::where('customer_id', $request->user()->id)->update(['customer_id' => null]);
 
             return $this->successResponse(null, 'Logout successful');
         }, 'Logout failed');
@@ -314,17 +321,10 @@ class CustomerAuthController extends BaseApiController
     public function setExpoPushToken(SetExpoPushTokenRequest $request): JsonResponse
     {
         return $this->executeWithExceptionHandling(function () use ($request) {
-
             $token = $request->token;
             $customerId = $request->customer_id ?? null;
 
-            $tokenModel = ExpoPushToken::firstOrNew(['token' => $token]);
-
-            if ($customerId) {
-                $tokenModel->customer_id = $customerId;
-            }
-
-            $tokenModel->save();
+            ExpoToken::createOrUpdate($token, $customerId);
 
             return $this->successResponse(null, 'Expo Push Token saved successfully.');
         }, 'Failed to set expo push token');

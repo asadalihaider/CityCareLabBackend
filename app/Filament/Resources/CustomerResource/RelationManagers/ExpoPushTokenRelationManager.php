@@ -2,14 +2,14 @@
 
 namespace App\Filament\Resources\CustomerResource\RelationManagers;
 
-use App\Models\ExpoPushToken;
+use App\Models\ExpoToken;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 
 class ExpoPushTokenRelationManager extends RelationManager
 {
-    protected static string $relationship = 'expoPushTokens';
+    protected static string $relationship = 'expoTokens';
 
     protected static ?string $title = 'Notification Tokens';
 
@@ -17,7 +17,7 @@ class ExpoPushTokenRelationManager extends RelationManager
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('token')
+                Tables\Columns\TextColumn::make('value')
                     ->label('Token')
                     ->copyable(),
 
@@ -30,7 +30,7 @@ class ExpoPushTokenRelationManager extends RelationManager
                     ->label('Remove Token')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
-                    ->action(fn (ExpoPushToken $record) => $record->delete())
+                    ->action(fn (ExpoToken $record) => $record->delete())
                     ->requiresConfirmation()
                     ->modalDescription('This will remove the token from the customer and make it available for others.'),
             ])

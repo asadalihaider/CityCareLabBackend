@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -8,17 +10,18 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('expo_push_tokens', function (Blueprint $table) {
+        Schema::create(config('expo-notifications.database.tokens_table_name', 'expo_tokens'), function (Blueprint $table) {
             $table->id();
-            $table->string('token')->unique();
-            $table->foreignId('customer_id')->nullable()->constrained('customers')->onDelete('cascade');
-            $table->timestamp('last_used')->nullable();
+
+            $table->morphs('owner');
+            $table->string('value');
+
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('expo_push_tokens');
+        Schema::dropIfExists(config('expo-notifications.database.tokens_table_name', 'expo_tokens'));
     }
 };
