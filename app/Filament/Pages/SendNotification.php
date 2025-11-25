@@ -22,7 +22,18 @@ class SendNotification extends Page
 
     public function mount(): void
     {
-        $this->form->fill();
+        $customerId = request()->integer('customer_id');
+
+        $defaults = [];
+
+        if ($customerId) {
+            $defaults = [
+                'recipient_type'     => 'specific_customers',
+                'specific_customers' => [$customerId],
+            ];
+        }
+
+        $this->form->fill($defaults);
     }
 
     public function form(Form $form): Form
