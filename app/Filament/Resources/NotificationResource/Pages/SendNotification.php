@@ -1,22 +1,23 @@
 <?php
 
-namespace App\Filament\Pages;
+namespace App\Filament\Resources\NotificationResource\Pages;
 
+use App\Filament\Resources\NotificationResource;
 use App\Models\Customer;
 use App\Models\ExpoToken;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
-use Filament\Pages\Page;
+use Filament\Resources\Pages\Page;
 
 class SendNotification extends Page
 {
+    protected static string $resource = NotificationResource::class;
+
     protected static string $view = 'filament.pages.send-notification';
 
-    protected static ?string $title = 'Notification';
-
-    protected static ?string $navigationIcon = 'heroicon-o-bell';
+    protected static ?string $title = 'Send Notification';
 
     public ?array $data = [];
 
@@ -94,7 +95,7 @@ class SendNotification extends Page
                         Forms\Components\Checkbox::make('send_immediately')
                             ->label('Send Immediately')
                             ->helperText('Enable to send notifications immediately without batching')
-                            ->default(true),
+                            ->default(false),
                     ])
                     ->columns(2),
             ])
@@ -108,10 +109,11 @@ class SendNotification extends Page
                 ->label('Send Notification')
                 ->icon('heroicon-o-paper-airplane')
                 ->color('primary')
-                ->modalHeading('Confirm Send Notification')
-                ->modalDescription('Are you sure you want to send this notification? This action cannot be undone.')
                 ->action(fn () => $this->sendNotification())
-                ->requiresConfirmation(),
+                ->requiresConfirmation(function (): bool {
+                    $data = $this->form->getState();
+                    return $data['send_immediately'] === false;
+                }),
         ];
     }
 
@@ -145,7 +147,7 @@ class SendNotification extends Page
 
             $message = $data['send_immediately']
                 ? "Notification sent immediately to {$recipients->count()} recipients."
-                : "Notification queued for {$recipients->count()} recipients. Run 'php artisan expo:notifications:send' to process.";
+                : "Notification queued for {$recipients->count()} recipients. Check the notifications list to process them.";
 
             Notification::make()
                 ->title('Notification Processed Successfully!')
@@ -153,7 +155,8 @@ class SendNotification extends Page
                 ->success()
                 ->send();
 
-            $this->redirect(static::getResource()::getUrl('index'));
+            // Redirect back to notifications list
+            $this->redirect(NotificationResource::getUrl('index'));
 
         } catch (\Exception $e) {
             Notification::make()

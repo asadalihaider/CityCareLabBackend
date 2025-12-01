@@ -30,7 +30,7 @@ class ExpoPushTokenRelationManager extends RelationManager
                     ->label('Send Notification')
                     ->icon('heroicon-o-paper-airplane')
                     ->color('success')
-                    ->url(fn () => \App\Filament\Pages\SendNotification::getUrl([
+                    ->url(fn () => \App\Filament\Resources\NotificationResource::getUrl('send', [
                         'customer_id' => $this->getOwnerRecord()->id
                     ])),
                 Tables\Actions\Action::make('remove')
