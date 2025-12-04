@@ -141,6 +141,7 @@ class CustomerResource extends Resource
     {
         return [
             \App\Filament\Resources\CustomerResource\RelationManagers\CustomerCardsRelationManager::class,
+            \App\Filament\Resources\CustomerResource\RelationManagers\ExpoPushTokenRelationManager::class,
         ];
     }
 
