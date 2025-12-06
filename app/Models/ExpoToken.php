@@ -31,4 +31,14 @@ class ExpoToken extends BaseExpoToken
     {
         return $query->whereNull('owner_type')->whereNull('owner_id');
     }
+
+    public function makeAnonymous(): self
+    {
+        $this->update([
+            'owner_type' => null,
+            'owner_id' => null,
+        ]);
+
+        return $this;
+    }
 }
