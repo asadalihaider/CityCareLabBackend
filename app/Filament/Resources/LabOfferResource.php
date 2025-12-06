@@ -35,7 +35,7 @@ class LabOfferResource extends Resource
                     ->image()
                     ->directory('offers')
                     ->disk('s3')
-                    ->visibility('publico')
+                    ->visibility('private')
                     ->required()
                     ->maxSize(2048)
                     ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
@@ -53,6 +53,7 @@ class LabOfferResource extends Resource
             ->columns([
                 ImageColumn::make('image')
                     ->disk('s3')
+                    ->visibility('private')
                     ->square()
                     ->extraImgAttributes(['loading' => 'lazy'])
                     ->default('/placeholder.png'),

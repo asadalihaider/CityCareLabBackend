@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Exports\TestExporter;
 use App\Filament\Resources\TestResource\Pages;
 use App\Models\Enum\TestType;
 use App\Models\Test;
@@ -13,6 +14,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Tables\Actions\ExportBulkAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
@@ -149,7 +151,7 @@ class TestResource extends Resource
                     ->label(__('Image'))
                     ->image()
                     ->disk('s3')
-                    ->visibility('publico')
+                    ->visibility('private')
                     ->directory('featured-tests')
                     ->maxSize(2048)
                     ->visible(fn ($get) => $get('is_featured') === true)
@@ -228,6 +230,10 @@ class TestResource extends Resource
                 Filter::make('is_featured')
                     ->label(__('Featured Only'))
                     ->query(fn (Builder $query): Builder => $query->where('is_featured', true)),
+            ])
+            ->bulkActions([
+                ExportBulkAction::make()
+                    ->exporter(TestExporter::class),
             ])
             ->defaultSort('is_featured', 'desc');
     }
