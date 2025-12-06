@@ -149,7 +149,7 @@ class TestResource extends Resource
                     ->label(__('Image'))
                     ->image()
                     ->disk('s3')
-                    ->visibility('publico')
+                    ->visibility('private')
                     ->directory('featured-tests')
                     ->maxSize(2048)
                     ->visible(fn ($get) => $get('is_featured') === true)

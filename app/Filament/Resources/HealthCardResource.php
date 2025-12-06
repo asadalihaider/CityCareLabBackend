@@ -67,7 +67,7 @@ class HealthCardResource extends Resource
                     ->required()
                     ->directory('health-cards')
                     ->disk('s3')
-                    ->visibility('publico')
+                    ->visibility('private')
                     ->maxSize(2048)
                     ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/gif', 'image/webp']),
 
@@ -84,6 +84,7 @@ class HealthCardResource extends Resource
                 ImageColumn::make('image')
                     ->disk('s3')
                     ->square()
+                    ->visibility('private')
                     ->extraImgAttributes(['loading' => 'lazy'])
                     ->default('/placeholder.png'),
 

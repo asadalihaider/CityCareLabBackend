@@ -40,7 +40,6 @@ class CustomerResource extends Resource
                     ->placeholder('Enter customer mobile number'),
                 TextInput::make('email')
                     ->label(__('Email'))
-                    ->required()
                     ->placeholder('Enter customer email'),
                 TextInput::make('password')
                     ->label(__('Password'))
@@ -52,7 +51,6 @@ class CustomerResource extends Resource
                 DatePicker::make('dob')
                     ->label(__('Date of Birth'))
                     ->native(false)
-                    ->required()
                     ->maxDate(now())
                     ->placeholder('Enter customer date of birth'),
 
@@ -62,7 +60,6 @@ class CustomerResource extends Resource
 
                 Select::make('city_id')
                     ->label(__('Location'))
-                    ->required()
                     ->relationship('city', 'name')
                     ->native(false),
 
@@ -70,7 +67,7 @@ class CustomerResource extends Resource
                     ->label(__('Image'))
                     ->image()
                     ->disk('s3')
-                    ->visibility('publico')
+                    ->visibility('private')
                     ->directory('customers')
                     ->maxSize(2048)
                     ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
