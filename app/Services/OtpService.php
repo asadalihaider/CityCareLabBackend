@@ -18,7 +18,8 @@ class OtpService
             // Mock successful send
             return true;
         } catch (\Exception $e) {
-            Log::error("Failed to send SMS OTP to {$mobileNumber}: " . $e->getMessage());
+            Log::error("Failed to send SMS OTP to {$mobileNumber}: ".$e->getMessage());
+
             return false;
         }
     }
@@ -33,7 +34,8 @@ class OtpService
             // Mock successful send
             return true;
         } catch (\Exception $e) {
-            Log::error("Failed to send Email OTP to {$email}: " . $e->getMessage());
+            Log::error("Failed to send Email OTP to {$email}: ".$e->getMessage());
+
             return false;
         }
     }
@@ -48,7 +50,8 @@ class OtpService
                 return $this->sendSms($identifier, $otp, $type);
             }
         } catch (\Exception $e) {
-            Log::error("Failed to send OTP to {$identifier}: " . $e->getMessage());
+            Log::error("Failed to send OTP to {$identifier}: ".$e->getMessage());
+
             return false;
         }
     }
@@ -60,14 +63,16 @@ class OtpService
 
             $sent = $this->sendOtp($identifier, $otp->otp, $type);
 
-            if (!$sent) {
+            if (! $sent) {
                 $otp->delete();
+
                 return null;
             }
 
             return $otp;
         } catch (\Exception $e) {
-            Log::error("Failed to create and send OTP: " . $e->getMessage());
+            Log::error('Failed to create and send OTP: '.$e->getMessage());
+
             return null;
         }
     }
@@ -80,25 +85,26 @@ class OtpService
             ->latest()
             ->first();
 
-        if (!$otp) {
+        if (! $otp) {
             return [
                 'success' => false,
-                'message' => 'Invalid or expired OTP. Please request a new one.'
+                'message' => 'Invalid or expired OTP. Please request a new one.',
             ];
         }
 
         if ($otp->hasExceededAttempts()) {
             return [
                 'success' => false,
-                'message' => 'Maximum attempts exceeded. Please request a new OTP.'
+                'message' => 'Maximum attempts exceeded. Please request a new OTP.',
             ];
         }
 
         if ($otp->otp !== $otpCode) {
             $otp->incrementAttempts();
+
             return [
                 'success' => false,
-                'message' => 'Invalid OTP. Please try again.'
+                'message' => 'Invalid OTP. Please try again.',
             ];
         }
 
@@ -107,7 +113,7 @@ class OtpService
         return [
             'success' => true,
             'message' => 'OTP verified successfully.',
-            'otp' => $otp
+            'otp' => $otp,
         ];
     }
 
@@ -121,17 +127,17 @@ class OtpService
             ->latest('verified_at')
             ->first();
 
-        if (!$otp) {
+        if (! $otp) {
             return [
                 'success' => false,
-                'message' => 'No verified OTP found or verification expired. Please verify OTP first.'
+                'message' => 'No verified OTP found or verification expired. Please verify OTP first.',
             ];
         }
 
         return [
             'success' => true,
             'message' => 'Verified OTP found.',
-            'otp' => $otp
+            'otp' => $otp,
         ];
     }
 

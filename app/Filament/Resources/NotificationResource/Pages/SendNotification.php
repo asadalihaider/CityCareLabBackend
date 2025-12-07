@@ -29,7 +29,7 @@ class SendNotification extends Page
 
         if ($customerId) {
             $defaults = [
-                'recipient_type'     => 'specific_customers',
+                'recipient_type' => 'specific_customers',
                 'specific_customers' => [$customerId],
             ];
         }
@@ -112,6 +112,7 @@ class SendNotification extends Page
                 ->action(fn () => $this->sendNotification())
                 ->requiresConfirmation(function (): bool {
                     $data = $this->form->getState();
+
                     return $data['send_immediately'] === false;
                 }),
         ];

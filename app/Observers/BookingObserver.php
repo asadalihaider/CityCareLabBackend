@@ -14,7 +14,7 @@ class BookingObserver
     {
         $customer = Customer::where('mobile_number', env('ADMIN_MOBILE_NUMBER'))->first();
 
-        if (!$customer || !$customer->expoTokens()->exists()) {
+        if (! $customer || ! $customer->expoTokens()->exists()) {
             return;
         }
 
