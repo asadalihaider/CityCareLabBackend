@@ -16,7 +16,7 @@ class Otp extends Model
         'type',
         'expires_at',
         'verified_at',
-        'attempts'
+        'attempts',
     ];
 
     protected $casts = [
@@ -26,6 +26,7 @@ class Otp extends Model
     ];
 
     const MAX_ATTEMPTS = 3;
+
     const EXPIRY_MINUTES = 5;
 
     public function scopeValid($query)
@@ -52,7 +53,7 @@ class Otp extends Model
 
     public function isVerified(): bool
     {
-        return !is_null($this->verified_at);
+        return ! is_null($this->verified_at);
     }
 
     public function hasExceededAttempts(): bool

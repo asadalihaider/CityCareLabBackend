@@ -11,9 +11,10 @@ class NotificationStatsWidget extends BaseWidget
     protected function getStats(): array
     {
         $queuedCount = ExpoNotification::count();
-        
+
         $totalRecipients = ExpoNotification::get()->sum(function ($notification) {
             $data = json_decode($notification->data, true);
+
             return count($data['to'] ?? []);
         });
 

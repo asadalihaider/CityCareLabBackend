@@ -32,21 +32,23 @@ class NotificationResource extends Resource
                         $title = $data['title'] ?? 'N/A';
                         $body = $data['body'] ?? 'N/A';
                         $tokensCount = count($data['to'] ?? []);
-                        
+
                         return "{$title} - {$body} (To: {$tokensCount} devices)";
                     })
                     ->limit(80)
                     ->tooltip(function (ExpoNotification $record) {
                         $data = json_decode($record->data, true);
-                        return "Title: " . ($data['title'] ?? 'N/A') . "\n" . 
-                               "Body: " . ($data['body'] ?? 'N/A') . "\n" .
-                               "Tokens: " . count($data['to'] ?? []);
+
+                        return 'Title: '.($data['title'] ?? 'N/A')."\n".
+                               'Body: '.($data['body'] ?? 'N/A')."\n".
+                               'Tokens: '.count($data['to'] ?? []);
                     }),
 
                 Tables\Columns\TextColumn::make('tokens_count')
                     ->label('Recipients')
                     ->getStateUsing(function (ExpoNotification $record) {
                         $data = json_decode($record->data, true);
+
                         return count($data['to'] ?? []);
                     })
                     ->alignCenter(),
@@ -61,20 +63,20 @@ class NotificationResource extends Resource
                 Tables\Actions\ViewAction::make()
                     ->modalContent(function (ExpoNotification $record) {
                         $data = json_decode($record->data, true);
-                        
-                        $content = "**Title:** " . ($data['title'] ?? 'N/A') . "\n\n";
-                        $content .= "**Body:** " . ($data['body'] ?? 'N/A') . "\n\n";
-                        $content .= "**Recipients:** " . count($data['to'] ?? []) . " devices\n\n";
-                        
-                        if (!empty($data['data'])) {
-                            $content .= "**Additional Data:**\n```json\n" . json_encode($data['data'], JSON_PRETTY_PRINT) . "\n```\n\n";
+
+                        $content = '**Title:** '.($data['title'] ?? 'N/A')."\n\n";
+                        $content .= '**Body:** '.($data['body'] ?? 'N/A')."\n\n";
+                        $content .= '**Recipients:** '.count($data['to'] ?? [])." devices\n\n";
+
+                        if (! empty($data['data'])) {
+                            $content .= "**Additional Data:**\n```json\n".json_encode($data['data'], JSON_PRETTY_PRINT)."\n```\n\n";
                         }
-                        
+
                         $content .= "**Tokens:**\n";
                         foreach ($data['to'] ?? [] as $token) {
-                            $content .= "- " . substr($token, 0, 20) . "...\n";
+                            $content .= '- '.substr($token, 0, 20)."...\n";
                         }
-                        
+
                         return view('filament::pages.simple-page', ['slot' => str($content)->markdown()]);
                     }),
 
@@ -100,7 +102,7 @@ class NotificationResource extends Resource
                     ->modalDescription('This will process all queued notifications and send them to their recipients. Are you sure you want to continue?')
                     ->action(function () {
                         $exitCode = Artisan::call('expo:notifications:send');
-                        
+
                         if ($exitCode === 0) {
                             \Filament\Notifications\Notification::make()
                                 ->title('Notifications Processed')

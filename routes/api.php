@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AppInfoController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\CardController;
 use App\Http\Controllers\Api\CustomerAuthController;
@@ -12,6 +13,7 @@ use App\Http\Controllers\Api\TestCategoryController;
 use App\Http\Controllers\Api\TestController;
 use Illuminate\Support\Facades\Route;
 
+Route::get('app-version-info', [AppInfoController::class, 'checkVersion']);
 Route::get('health-cards', [HealthCardController::class, 'index']);
 Route::get('lab-offers', [LabOfferController::class, 'index']);
 Route::get('operating-cities', [OperatingCityController::class, 'index']);
