@@ -9,10 +9,24 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
 use Filament\Pages\Dashboard as BaseDashboard;
 use Filament\Pages\Dashboard\Concerns\HasFiltersForm;
+use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\Facades\Auth;
 
 class Dashboard extends BaseDashboard
 {
     use HasFiltersForm;
+
+    public function getSubheading(): string|Htmlable|null
+    {
+        /** @var \App\Models\User|null $user */
+        $user = Auth::user();
+
+        if ($user && $user->isStaff() && $user->city) {
+            return '📍 You can only view data for your assigned area: '.$user->city->name;
+        }
+
+        return null;
+    }
 
     public function persistsFiltersInSession(): bool
     {

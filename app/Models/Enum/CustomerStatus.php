@@ -18,4 +18,13 @@ enum CustomerStatus: string
             self::BLOCKED => 'Blocked',
         };
     }
+
+    public function color(): string
+    {
+        return match ($this) {
+            self::ACTIVE => 'success',
+            self::INACTIVE => 'warning',
+            self::BLOCKED => 'danger',
+        };
+    }
 }
