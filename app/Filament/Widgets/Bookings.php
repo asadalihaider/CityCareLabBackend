@@ -13,6 +13,8 @@ use Filament\Tables\Table;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class Bookings extends BaseWidget
 {
@@ -20,13 +22,34 @@ class Bookings extends BaseWidget
 
     protected int|string|array $columnSpan = 'full';
 
+    public static function canView(): bool
+    {
+        $user = Auth::user();
+
+        return $user instanceof \App\Models\User && $user->can('widget_Bookings');
+    }
+
     public function table(Table $table): Table
     {
         $startDate = $this->filters['fromDate'] ?? null;
         $endDate = $this->filters['toDate'] ?? null;
+        /** @var \App\Models\User|null $user */
+        $user = Auth::user();
 
         return $table
-            ->query(fn () => Booking::query()->latest()->when($startDate && $endDate, fn ($q) => $q->whereBetween('created_at', [$startDate, $endDate])))
+            ->query(function () use ($startDate, $endDate, $user) {
+                return Booking::query()
+                    ->with(['customer.city'])
+                    ->latest()
+                    ->when($startDate && $endDate, fn ($q) => $q->whereBetween('created_at', [$startDate, $endDate]))
+                    ->when(
+                        $user && $user->city_id && ! $user->isSuperAdmin(),
+                        fn (Builder $query) => $query->whereHas(
+                            'customer',
+                            fn (Builder $q) => $q->where('city_id', $user->city_id)
+                        )
+                    );
+            })
             ->poll('60s')
             ->columns([
                 TextColumn::make('patient_name')
