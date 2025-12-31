@@ -73,6 +73,27 @@ class Customer extends Authenticatable
         ])->save();
     }
 
+    public function getFamilyCards()
+    {
+        return $this->customerCards()
+            ->whereHas('physicalCard.healthCard', fn ($query) => $query->where('max_members', '>', 1))
+            ->with(['physicalCard.healthCard', 'customer'])
+            ->get();
+    }
+
+    public function getIndividualCards()
+    {
+        return $this->customerCards()
+            ->whereHas('physicalCard.healthCard', fn ($query) => $query->where('max_members', 1))
+            ->with('physicalCard.healthCard')
+            ->get();
+    }
+
+    public function expoTokens()
+    {
+        return $this->morphMany(ExpoToken::class, 'owner');
+    }
+
     public function bookings()
     {
         return $this->hasMany(Booking::class);
@@ -98,8 +119,18 @@ class Customer extends Authenticatable
         return $this->hasOne(CustomerCard::class)->active();
     }
 
-    public function expoTokens()
+    public function primaryCards()
     {
-        return $this->morphMany(ExpoToken::class, 'owner');
+        return $this->hasMany(CustomerCard::class)->where('is_primary', true);
+    }
+
+    public function familyMemberships()
+    {
+        return $this->hasMany(CustomerCard::class)->where('is_primary', false);
+    }
+
+    public function addedFamilyMembers()
+    {
+        return $this->hasMany(CustomerCard::class, 'added_by');
     }
 }

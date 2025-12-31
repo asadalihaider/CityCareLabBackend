@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use App\Models\Enum\PhysicalCardStatus;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class PhysicalCard extends Model
@@ -26,7 +28,6 @@ class PhysicalCard extends Model
         'is_active' => 'boolean',
     ];
 
-    // Relationships
     public function healthCard(): BelongsTo
     {
         return $this->belongsTo(HealthCard::class);
@@ -37,7 +38,21 @@ class PhysicalCard extends Model
         return $this->hasOne(CustomerCard::class);
     }
 
-    // Scopes
+    public function customerCards(): HasMany
+    {
+        return $this->hasMany(CustomerCard::class);
+    }
+
+    public function primaryHolder(): HasOne
+    {
+        return $this->hasOne(CustomerCard::class)->primary();
+    }
+
+    public function familyMembers(): HasMany
+    {
+        return $this->hasMany(CustomerCard::class)->with('customer');
+    }
+
     public function scopeAvailable($query)
     {
         return $query->where('status', PhysicalCardStatus::AVAILABLE)
@@ -57,7 +72,7 @@ class PhysicalCard extends Model
         return $query->where('expiry_date', '>', now());
     }
 
-    public function scopeBySerialAndExpiry($query, $serial, $expiry)
+    public function scopeBySerialAndExpiry($query, string $serial, $expiry)
     {
         return $query->where('serial_number', $serial)
             ->where('expiry_date', $expiry);
@@ -66,6 +81,35 @@ class PhysicalCard extends Model
     public function isExpired(): bool
     {
         return $this->expiry_date <= now();
+    }
+
+    public function isFamilyCard(): bool
+    {
+        return $this->healthCard->isFamilyCard();
+    }
+
+    public function getMemberCount(): int
+    {
+        return $this->customerCards()->count();
+    }
+
+    public function hasAvailableSlots(): bool
+    {
+        return $this->getMemberCount() < $this->healthCard->max_members;
+    }
+
+    public function getAllMembers(): Collection
+    {
+        return $this->customerCards()
+            ->with('customer')
+            ->orderBy('is_primary', 'desc')
+            ->orderBy('created_at')
+            ->get();
+    }
+
+    public function getPrimaryCardholder(): ?CustomerCard
+    {
+        return $this->primaryHolder()->with('customer')->first();
     }
 
     public function markAsActivated(): void

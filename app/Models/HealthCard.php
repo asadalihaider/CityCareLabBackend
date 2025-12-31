@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Models\Enum\PhysicalCardStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class HealthCard extends Model
 {
@@ -19,6 +21,7 @@ class HealthCard extends Model
         'image',
         'price',
         'serial_prefix',
+        'max_members',
         'is_active',
     ];
 
@@ -26,6 +29,7 @@ class HealthCard extends Model
         'is_active' => 'boolean',
         'price' => 'decimal:2',
         'features' => 'array',
+        'max_members' => 'integer',
     ];
 
     public function scopeActive($query)
@@ -33,31 +37,34 @@ class HealthCard extends Model
         return $query->where('is_active', true);
     }
 
-    public function physicalCards()
+    public function isFamilyCard(): bool
     {
-        return $this->hasMany(PhysicalCard::class, 'health_card_id');
+        return $this->max_members > 1;
+    }
+
+    public function isIndividualCard(): bool
+    {
+        return $this->max_members === 1;
+    }
+
+    public function physicalCards(): HasMany
+    {
+        return $this->hasMany(PhysicalCard::class);
     }
 
     public function generatePhysicalCards(int $quantity, int $tenureYears = 2): array
     {
-        $cards = [];
         $expiryDate = now()->addYears($tenureYears);
 
-        for ($i = 1; $i <= $quantity; $i++) {
-            $serialNumber = $this->generateSerialNumber();
-
-            $card = PhysicalCard::create([
+        return collect(range(1, $quantity))
+            ->map(fn () => PhysicalCard::create([
                 'health_card_id' => $this->id,
-                'serial_number' => $serialNumber,
+                'serial_number' => $this->generateSerialNumber(),
                 'expiry_date' => $expiryDate,
-                'status' => \App\Models\Enum\PhysicalCardStatus::AVAILABLE,
+                'status' => PhysicalCardStatus::AVAILABLE,
                 'is_active' => true,
-            ]);
-
-            $cards[] = $card;
-        }
-
-        return $cards;
+            ]))
+            ->all();
     }
 
     private function generateSerialNumber(): string
