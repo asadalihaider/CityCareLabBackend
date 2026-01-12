@@ -32,7 +32,7 @@ class CustomerCardsRelationManager extends RelationManager
                                     $card->expiry_date->format('Y-m-d'),
                                     $card->healthCard->max_members > 1 ? ' [Family Card]' : '',
                                     $card->isFamilyCard() ? sprintf(' - %d/%d members', $card->getMemberCount(), $card->healthCard->max_members) : ''
-                                )
+                                ),
                             ]);
                     })
                     ->required()
@@ -59,6 +59,8 @@ class CustomerCardsRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('physicalCard.serial_number')
             ->columns([
+                Tables\Columns\TextColumn::make('physicalCard.healthCard.title')
+                    ->label('Card Title'),
                 Tables\Columns\TextColumn::make('physicalCard.serial_number')
                     ->label('Card Serial')
                     ->searchable()

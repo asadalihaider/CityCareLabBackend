@@ -24,6 +24,7 @@ class HealthCardController extends BaseApiController
                     'link' => $card->link,
                     'image' => $card->image ? Storage::disk('s3')->temporaryUrl($card->image, now()->addDays(1)) : null,
                     'price' => $card->price,
+                    'max_members' => $card->max_members,
                 ];
             });
 
