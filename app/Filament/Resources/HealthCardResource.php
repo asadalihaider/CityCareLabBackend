@@ -51,6 +51,16 @@ class HealthCardResource extends Resource
                     ->suffix('PKR')
                     ->minValue(0),
 
+                TextInput::make('max_members')
+                    ->label('Maximum Members')
+                    ->numeric()
+                    ->required()
+                    ->default(1)
+                    ->minValue(1)
+                    ->maxValue(10)
+                    ->helperText('Set to 1 for individual cards, or higher (e.g., 5) for family cards')
+                    ->columnSpan(1),
+
                 TextInput::make('link')
                     ->url()
                     ->required()
@@ -99,18 +109,23 @@ class HealthCardResource extends Resource
                 TextColumn::make('price')
                     ->money('PKR'),
 
+                TextColumn::make('max_members')
+                    ->label('Card Type')
+                    ->badge()
+                    ->getStateUsing(fn ($record) => $record->max_members === 1 ? 'Individual' : 'Family ('.$record->max_members.')')
+                    ->color(fn ($record) => $record->max_members === 1 ? 'gray' : 'success'),
+
                 TextColumn::make('description')
-                    ->limit(50),
+                    ->limit(50)
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('physical_cards_count')
                     ->label('Physical Cards')
                     ->counts('physicalCards'),
 
                 TextColumn::make('activated_cards_count')
-                    ->label('Activated')
-                    ->getStateUsing(fn ($record) => $record->physicalCards()
-                        ->whereHas('customerCard')
-                        ->count()),
+                    ->label('Activated Cards')
+                    ->getStateUsing(fn ($record) => $record->physicalCards()->whereHas('customerCard')->count()),
 
                 IconColumn::make('is_active')
                     ->boolean()
