@@ -51,9 +51,7 @@ class PhysicalCardsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('expiry_date')
                     ->label('Expiry Date')
                     ->date()
-                    ->color(function ($record) {
-                        return $record->expiry_date <= now() ? 'danger' : 'primary';
-                    }),
+                    ->color(fn ($record) => $record->expiry_date <= now() ? 'danger' : 'primary'),
 
                 Tables\Columns\TextColumn::make('status')
                     ->label('Status')
@@ -61,13 +59,24 @@ class PhysicalCardsRelationManager extends RelationManager
                     ->getStateUsing(fn ($record) => $record->status->label())
                     ->color(fn ($record) => $record->status?->color()),
 
+                Tables\Columns\TextColumn::make('member_count')
+                    ->label('Members')
+                    ->getStateUsing(fn ($record) => $record->getMemberCount())
+                    ->badge()
+                    ->color(fn ($record) => $record->getMemberCount() > 0 ? 'success' : 'gray')
+                    ->visible(fn () => $this->ownerRecord->isFamilyCard()),
+
                 Tables\Columns\TextColumn::make('customerCard.customer.name')
                     ->label('Activated By')
                     ->placeholder('Not activated')
                     ->getStateUsing(function ($record) {
-                        $customerCard = $record->customerCard;
+                        if (! $record->isFamilyCard()) {
+                            return $record->customerCard?->customer->name;
+                        }
 
-                        return $customerCard ? $customerCard->customer->name : null;
+                        $primaryHolder = $record->getPrimaryCardholder();
+
+                        return $primaryHolder ? $primaryHolder->customer->name.' (Primary)' : null;
                     }),
 
                 Tables\Columns\IconColumn::make('is_active')
@@ -119,9 +128,7 @@ class PhysicalCardsRelationManager extends RelationManager
                             ->success()
                             ->send();
                     })
-                    ->visible(function () {
-                        return $this->ownerRecord->is_active;
-                    }),
+                    ->visible(fn () => $this->ownerRecord->is_active),
             ])
             ->actions([
                 Tables\Actions\Action::make('activate')
