@@ -60,6 +60,40 @@ class PhysicalCard extends Model
             ->where('expiry_date', '>', now());
     }
 
+    public function scopeAssignable($query, ?int $excludeCustomerId = null)
+    {
+        $query->where('is_active', true)
+            ->notExpired()
+            ->with(['healthCard', 'customerCards'])
+            ->where(function ($q) {
+                $q->where('status', PhysicalCardStatus::AVAILABLE)
+                    ->orWhere(function ($familyQuery) {
+                        $familyQuery->where('status', PhysicalCardStatus::ACTIVATED)
+                            ->whereHas('healthCard', fn ($hc) => $hc->where('max_members', '>', 1));
+                    });
+            })
+            ->when($excludeCustomerId, fn ($q) => $q->whereDoesntHave('customerCards', fn ($cc) => $cc->where('customer_id', $excludeCustomerId)));
+
+        return $query;
+    }
+
+    public function isAssignable(): bool
+    {
+        if (!$this->is_active || $this->isExpired()) {
+            return false;
+        }
+
+        if ($this->status === PhysicalCardStatus::AVAILABLE) {
+            return true;
+        }
+
+        if ($this->status === PhysicalCardStatus::ACTIVATED && $this->isFamilyCard()) {
+            return $this->hasAvailableSlots();
+        }
+
+        return false;
+    }
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true)

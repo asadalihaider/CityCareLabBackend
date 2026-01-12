@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\CustomerResource\RelationManagers;
 
 use App\Models\CustomerCard;
+use App\Models\Enum\CustomerRelationship;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -20,18 +21,36 @@ class CustomerCardsRelationManager extends RelationManager
             ->schema([
                 Forms\Components\Select::make('physical_card_id')
                     ->label('Physical Card')
-                    ->relationship('physicalCard', 'serial_number',
-                        fn (Builder $query) => $query->available()
-                    )
+                    ->options(function () {
+                        return \App\Models\PhysicalCard::assignable($this->ownerRecord->id)
+                            ->get()
+                            ->filter(fn ($card) => $card->isAssignable())
+                            ->mapWithKeys(fn ($card) => [
+                                $card->id => sprintf(
+                                    '%s (Expires: %s)%s%s',
+                                    $card->serial_number,
+                                    $card->expiry_date->format('Y-m-d'),
+                                    $card->healthCard->max_members > 1 ? ' [Family Card]' : '',
+                                    $card->isFamilyCard() ? sprintf(' - %d/%d members', $card->getMemberCount(), $card->healthCard->max_members) : ''
+                                )
+                            ]);
+                    })
                     ->required()
                     ->searchable()
                     ->preload()
-                    ->getOptionLabelFromRecordUsing(function ($record) {
-                        $expiry = $record->expiry_date->format('Y-m-d');
+                    ->live()
+                    ->helperText('Available cards and family cards with open slots are shown'),
 
-                        return $record->serial_number.' (Expires: '.$expiry.')';
-                    })
-                    ->helperText('Only available and active cards are shown'),
+                Forms\Components\Select::make('relationship_type')
+                    ->label('Relationship to Primary Holder')
+                    ->options(fn () => collect(CustomerRelationship::cases())
+                        ->filter(fn ($case) => $case !== CustomerRelationship::SELF)
+                        ->mapWithKeys(fn ($case) => [$case->value => $case->label()])
+                    )
+                    ->required()
+                    ->default(CustomerRelationship::CHILD->value)
+                    ->visible(fn (Forms\Get $get) => $get('physical_card_id') && CustomerCard::where('physical_card_id', $get('physical_card_id'))->primary()->exists())
+                    ->helperText('You are being added as a family member'),
             ]);
     }
 
@@ -45,6 +64,25 @@ class CustomerCardsRelationManager extends RelationManager
                     ->searchable()
                     ->copyable(),
 
+                Tables\Columns\TextColumn::make('card_type')
+                    ->label('Card Type')
+                    ->badge()
+                    ->getStateUsing(fn ($record) => $record->isIndividualCard() ? 'Individual' : 'Family')
+                    ->color(fn ($record) => $record->isIndividualCard() ? 'gray' : 'success'),
+
+                Tables\Columns\TextColumn::make('relationship_type')
+                    ->label('Role')
+                    ->badge()
+                    ->getStateUsing(fn ($record) => $record->relationship_type->label())
+                    ->color(fn ($record) => $record->is_primary ? 'info' : 'warning'),
+
+                Tables\Columns\TextColumn::make('family_members_count')
+                    ->label('Family Members')
+                    ->getStateUsing(fn ($record) => $record?->getFamilyMembers()->count() ?? 0)
+                    ->badge()
+                    ->visible(fn ($record) => $record?->isFamilyCard() ?? false)
+                    ->color('success'),
+
                 Tables\Columns\TextColumn::make('physicalCard.expiry_date')
                     ->label('Card Expiry')
                     ->date()
@@ -56,25 +94,17 @@ class CustomerCardsRelationManager extends RelationManager
 
                 Tables\Columns\TextColumn::make('status')
                     ->label('Status')
-                    ->getStateUsing(function (CustomerCard $record) {
-                        if ($record->physicalCard->is_active) {
-                            return 'Active';
-                        }
-                        if (! $record->physicalCard->is_active) {
-                            return 'Deactivated';
-                        }
-                        if ($record->physicalCard->isExpired()) {
-                            return 'Expired';
-                        }
-
-                        return 'Unknown';
+                    ->badge()
+                    ->getStateUsing(fn (CustomerCard $record) => match (true) {
+                        $record->physicalCard->isExpired() => 'Expired',
+                        $record->physicalCard->is_active => 'Active',
+                        default => 'Deactivated',
                     })
-                    ->colors([
-                        'success' => 'Active',
-                        'warning' => 'Deactivated',
-                        'danger' => ['Expired', 'Unknown'],
-                    ])
-                    ->badge(),
+                    ->color(fn (string $state) => match ($state) {
+                        'Active' => 'success',
+                        'Deactivated' => 'warning',
+                        default => 'danger',
+                    }),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Activated At')
@@ -96,23 +126,47 @@ class CustomerCardsRelationManager extends RelationManager
                 Tables\Actions\CreateAction::make()
                     ->mutateFormDataUsing(function (array $data) {
                         $data['customer_id'] = $this->ownerRecord->id;
+                        $hasPrimaryHolder = CustomerCard::where('physical_card_id', $data['physical_card_id'])->primary()->exists();
+
+                        $data['is_primary'] = ! $hasPrimaryHolder;
+                        $data['relationship_type'] = $hasPrimaryHolder
+                            ? CustomerRelationship::from($data['relationship_type'] ?? CustomerRelationship::CHILD->value)
+                            : CustomerRelationship::SELF;
 
                         return $data;
                     })
-                    ->using(function (array $data) {
-                        return CustomerCard::activateCard($data['customer_id'], $data['physical_card_id']);
-                    }),
+                    ->using(fn (array $data) => CustomerCard::activateCard(
+                        customerId: $data['customer_id'],
+                        physicalCardId: $data['physical_card_id'],
+                        isPrimary: $data['is_primary'],
+                        relationshipType: $data['relationship_type']
+                    )),
             ])
             ->actions([
+                Tables\Actions\Action::make('view_family')
+                    ->label('View Members')
+                    ->icon('heroicon-o-user-group')
+                    ->color('info')
+                    ->visible(fn ($record) => $record?->isFamilyCard() ?? false)
+                    ->modalHeading('Family Members')
+                    ->modalContent(function ($record) {
+                        return view('filament.components.family-members-list', [
+                            'members' => $record->getFamilyMembers(),
+                        ]);
+                    })
+                    ->modalSubmitAction(false)
+                    ->modalCancelAction(false)
+                    ->modalWidth('md'),
+
                 Tables\Actions\Action::make('remove')
                     ->label('Remove Card')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
-                    ->action(function (CustomerCard $record) {
-                        $record->removeCard();
-                    })
+                    ->action(fn (CustomerCard $record) => $record->removeCard())
                     ->requiresConfirmation()
-                    ->modalDescription('This will remove the card from the customer and make it available for others.'),
+                    ->modalDescription(fn ($record) => $record->isPrimary() && $record->getFamilyMembers()->count() > 1
+                        ? 'Warning: This is a primary cardholder with family members. Remove all family members first.'
+                        : 'This will remove the card from the customer and make it available for others.'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
