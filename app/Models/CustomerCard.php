@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Enum\CustomerRelationship;
+use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -126,38 +127,49 @@ class CustomerCard extends Model
         return $currentCount < $this->physicalCard->healthCard->max_members;
     }
 
-    /**
-     * Activate a new card or add family member to existing card.
-     * Validates primary holder existence and member limits for family cards.
-     */
     public static function activateCard(
         int $customerId,
         int $physicalCardId,
         bool $isPrimary = true,
         ?CustomerRelationship $relationshipType = null,
         ?int $addedBy = null
-    ): self {
+    ): ?self {
         $relationshipType = $relationshipType ?? CustomerRelationship::SELF;
 
         if (!$isPrimary) {
             $primaryHolder = self::byPhysicalCard($physicalCardId)->primary()->first();
 
             if (!$primaryHolder) {
-                throw new \Exception('Cannot add family member without a primary cardholder.');
+                Notification::make()
+                    ->title('Cannot add family member')
+                    ->body('This card does not have a primary cardholder yet.')
+                    ->danger()
+                    ->send();
+                return null;
             }
 
             $physicalCard = PhysicalCard::find($physicalCardId);
             $currentCount = self::byPhysicalCard($physicalCardId)->count();
 
             if ($currentCount >= $physicalCard->healthCard->max_members) {
-                throw new \Exception("Maximum {$physicalCard->healthCard->max_members} members allowed for this card.");
+                Notification::make()
+                    ->title('Member limit reached')
+                    ->body("Maximum {$physicalCard->healthCard->max_members} members allowed for this card.")
+                    ->warning()
+                    ->send();
+                return null;
             }
 
             $addedBy = $addedBy ?? $primaryHolder->customer_id;
         }
 
         if (self::forCustomer($customerId)->byPhysicalCard($physicalCardId)->exists()) {
-            throw new \Exception('Customer is already registered with this card.');
+            Notification::make()
+                ->title('Already registered')
+                ->body('This customer is already registered with this card.')
+                ->warning()
+                ->send();
+            return null;
         }
 
         $customerCard = self::create([
@@ -172,17 +184,32 @@ class CustomerCard extends Model
             $customerCard->physicalCard->markAsActivated();
         }
 
+        Notification::make()
+            ->title('Card activated successfully')
+            ->success()
+            ->send();
+
         return $customerCard;
     }
 
-    public function addFamilyMember(int $customerId, CustomerRelationship $relationshipType): self
+    public function addFamilyMember(int $customerId, CustomerRelationship $relationshipType): ?self
     {
         if (!$this->isPrimary()) {
-            throw new \Exception('Only primary cardholder can add family members.');
+            Notification::make()
+                ->title('Permission denied')
+                ->body('Only primary cardholder can add family members.')
+                ->danger()
+                ->send();
+            return null;
         }
 
         if (!$this->canAddMember()) {
-            throw new \Exception('Maximum member limit reached for this card.');
+            Notification::make()
+                ->title('Member limit reached')
+                ->body('Maximum member limit reached for this card.')
+                ->warning()
+                ->send();
+            return null;
         }
 
         return self::activateCard(
@@ -194,29 +221,57 @@ class CustomerCard extends Model
         );
     }
 
-    public function removeFamilyMember(int $customerCardId): void
+    public function removeFamilyMember(int $customerCardId): bool
     {
         if (!$this->isPrimary()) {
-            throw new \Exception('Only primary cardholder can remove family members.');
+            Notification::make()
+                ->title('Permission denied')
+                ->body('Only primary cardholder can remove family members.')
+                ->danger()
+                ->send();
+            return false;
         }
 
         $memberCard = self::find($customerCardId);
 
         if (!$memberCard || $memberCard->physical_card_id !== $this->physical_card_id) {
-            throw new \Exception('Family member not found on this card.');
+            Notification::make()
+                ->title('Member not found')
+                ->body('Family member not found on this card.')
+                ->warning()
+                ->send();
+            return false;
         }
 
         if ($memberCard->isPrimary()) {
-            throw new \Exception('Cannot remove the primary cardholder.');
+            Notification::make()
+                ->title('Cannot remove primary')
+                ->body('Cannot remove the primary cardholder.')
+                ->danger()
+                ->send();
+            return false;
         }
 
         $memberCard->delete();
+
+        Notification::make()
+            ->title('Member removed')
+            ->body('Family member has been removed from the card.')
+            ->success()
+            ->send();
+
+        return true;
     }
 
-    public function removeCard(): void
+    public function removeCard(): bool
     {
         if ($this->isPrimary() && $this->getFamilyMembers()->count() > 1) {
-            throw new \Exception('Cannot remove primary holder while dependents exist. Remove dependents first.');
+            Notification::make()
+                ->title('Cannot remove primary holder')
+                ->body('Remove all dependents first before removing the primary holder.')
+                ->danger()
+                ->send();
+            return false;
         }
 
         if ($this->getFamilyMembers()->count() === 1) {
@@ -224,6 +279,14 @@ class CustomerCard extends Model
         }
 
         $this->delete();
+
+        Notification::make()
+            ->title('Card removed')
+            ->body('Card has been removed from customer.')
+            ->success()
+            ->send();
+
+        return true;
     }
 
     public function getCardDetailsAttribute(): array
