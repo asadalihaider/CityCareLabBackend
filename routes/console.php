@@ -10,3 +10,8 @@ Artisan::command('inspire', function () {
 
 Schedule::command('expo:notifications:send')->everySixHours();
 Schedule::command('expo:tickets:check')->monthly();
+Schedule::command('otp:clean-expired')->monthly();
+Schedule::command('queue:work --stop-when-empty --queue=default --tries=3')
+    ->everyMinute()
+    ->withoutOverlapping(5)
+    ->runInBackground();
