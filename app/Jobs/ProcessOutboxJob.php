@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Models\Enum\OutboxChannel;
 use App\Services\OutboxService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -24,11 +25,13 @@ class ProcessOutboxJob implements ShouldQueue
         public readonly string $mobile,
         public readonly string $event,
         public readonly array $data = [],
+        public readonly ?OutboxChannel $channel = null,
+        public readonly ?int $outboxLogId = null,
     ) {}
 
     public function handle(OutboxService $service): void
     {
-        $service->send($this->mobile, $this->event, $this->data);
+        $service->send($this->mobile, $this->event, $this->data, $this->channel, $this->outboxLogId);
     }
 
     public function failed(\Throwable $exception): void
@@ -36,7 +39,7 @@ class ProcessOutboxJob implements ShouldQueue
         Log::error('ProcessOutboxJob: All retries exhausted.', [
             'mobile' => $this->mobile,
             'event' => $this->event,
-            'data' => $this->data,
+            'outbox_log_id' => $this->outboxLogId,
             'error' => $exception->getMessage(),
         ]);
     }

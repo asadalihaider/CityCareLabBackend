@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\OutboxLogResource\Pages;
+use App\Filament\Resources\OutboxLogResource\Widgets\OutboxStatsWidget;
 use App\Models\Enum\OutboxChannel;
 use App\Models\Enum\OutboxStatus;
 use App\Models\OutboxLog;
@@ -23,6 +24,8 @@ class OutboxLogResource extends Resource
     protected static ?string $navigationLabel = 'Delivery Logs';
 
     protected static ?string $navigationGroup = 'Outbox';
+
+    protected static ?int $navigationSort = 11;
 
     public static function canCreate(): bool
     {
@@ -61,16 +64,25 @@ class OutboxLogResource extends Resource
                     ->limit(40)
                     ->tooltip(fn (OutboxLog $record) => $record->title),
 
-                TextColumn::make('body')
-                    ->label('Body')
-                    ->limit(60)
-                    ->tooltip(fn (OutboxLog $record) => $record->body)
-                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('scheduled_at')
+                    ->label('Scheduled For')
+                    ->dateTime()
+                    ->sortable()
+                    ->placeholder('—')
+                    ->toggleable(),
+
+                TextColumn::make('processed_at')
+                    ->label('Processed At')
+                    ->dateTime()
+                    ->sortable()
+                    ->placeholder('Pending')
+                    ->toggleable(),
 
                 TextColumn::make('created_at')
-                    ->label('Sent At')
+                    ->label('Created At')
                     ->dateTime()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
@@ -91,6 +103,10 @@ class OutboxLogResource extends Resource
                             ->toArray()
                     ),
 
+                Filter::make('pending')
+                    ->label('Pending / Scheduled')
+                    ->query(fn (Builder $query) => $query->byStatus(OutboxStatus::PENDING)),
+
                 Filter::make('today')
                     ->label('Today')
                     ->query(fn (Builder $query) => $query->whereDate('created_at', today())),
@@ -109,10 +125,18 @@ class OutboxLogResource extends Resource
             ->bulkActions([]);
     }
 
+    public static function getWidgets(): array
+    {
+        return [
+            OutboxStatsWidget::class,
+        ];
+    }
+
     public static function getPages(): array
     {
         return [
             'index' => Pages\ListOutboxLogs::route('/'),
+            'create' => Pages\CreateNotification::route('/create'),
         ];
     }
 }

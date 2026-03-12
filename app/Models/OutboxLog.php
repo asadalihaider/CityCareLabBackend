@@ -20,12 +20,16 @@ class OutboxLog extends Model
         'status',
         'response',
         'payload',
+        'scheduled_at',
+        'processed_at',
     ];
 
     protected $casts = [
         'channel' => OutboxChannel::class,
         'status' => OutboxStatus::class,
         'payload' => 'array',
+        'scheduled_at' => 'datetime',
+        'processed_at' => 'datetime',
     ];
 
     public function scopeByChannel(Builder $query, OutboxChannel $channel): Builder
