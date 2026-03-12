@@ -123,4 +123,16 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Admin Mobile Number
+    |--------------------------------------------------------------------------
+    |
+    | The admin's mobile number in international format (e.g. 923001234567).
+    | Used by the notification service to route internal system alerts.
+    |
+    */
+
+    'admin_mobile' => env('ADMIN_MOBILE_NUMBER'),
+
 ];

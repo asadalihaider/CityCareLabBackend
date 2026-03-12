@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\HealthCardController;
 use App\Http\Controllers\Api\LabCenterController;
 use App\Http\Controllers\Api\LabOfferController;
 use App\Http\Controllers\Api\OperatingCityController;
+use App\Http\Controllers\Api\OutboxController;
 use App\Http\Controllers\Api\TestCategoryController;
 use App\Http\Controllers\Api\TestController;
 use Illuminate\Support\Facades\Route;
@@ -32,7 +33,7 @@ Route::prefix('customer')->group(function () {
     Route::post('expo-push-token', [CustomerAuthController::class, 'setExpoPushToken']);
 });
 
-// Protected routes
+// Protected customer routes
 Route::middleware(['auth:sanctum'])->prefix('customer')->group(function () {
     Route::get('profile', [CustomerAuthController::class, 'profile']);
     Route::post('profile', [CustomerAuthController::class, 'updateProfile']);
@@ -45,3 +46,9 @@ Route::middleware(['auth:sanctum'])->prefix('customer')->group(function () {
     Route::post('card', [CardController::class, 'activateCard']);
     Route::put('card', [CardController::class, 'updateCard']);
 });
+
+Route::prefix('notifications')
+    ->middleware(['api.key', 'throttle:60,1'])
+    ->group(function () {
+        Route::post('send', [OutboxController::class, 'send']);
+    });
