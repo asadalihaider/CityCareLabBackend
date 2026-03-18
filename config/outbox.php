@@ -18,10 +18,10 @@ return [
             'enabled' => env('EXPO_NOTIFICATIONS_ENABLED', false),
         ],
         'whatsapp' => [
-            'enabled' => (bool) env('WHATSAPP_ENABLED', false),
+            'enabled' => (bool) env('WHATSAPP_NOTIFICATIONS_ENABLED', false),
         ],
         'sms' => [
-            'enabled' => (bool) env('SMS_ENABLED', false),
+            'enabled' => (bool) env('SMS_NOTIFICATIONS_ENABLED', false),
         ],
     ],
 

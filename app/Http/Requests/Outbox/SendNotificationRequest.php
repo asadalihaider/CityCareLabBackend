@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Outbox;
 
 use App\Http\Requests\Concerns\NormalizesPakistanMobile;
+use App\Models\Enum\OutboxChannel;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -30,6 +31,12 @@ class SendNotificationRequest extends FormRequest
                 'string',
                 Rule::in($validEvents),
             ],
+            'channel' => [
+                'sometimes',
+                'nullable',
+                'string',
+                Rule::in(OutboxChannel::values()),
+            ],
             'data' => ['sometimes', 'array'],
         ];
     }
@@ -47,5 +54,11 @@ class SendNotificationRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->normalizePakistanMobileField('mobile');
+        
+        if ($this->has('channel') && is_string($this->channel)) {
+            $this->merge([
+                'channel' => strtolower(trim($this->channel)),
+            ]);
+        }
     }
 }
