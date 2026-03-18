@@ -2,10 +2,13 @@
 
 namespace App\Http\Requests\Customer;
 
+use App\Http\Requests\Concerns\NormalizesPakistanMobile;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ForgotPasswordRequest extends FormRequest
 {
+    use NormalizesPakistanMobile;
+
     public function authorize(): bool
     {
         return true;
@@ -17,7 +20,7 @@ class ForgotPasswordRequest extends FormRequest
             'mobile_number' => [
                 'required',
                 'string',
-                'regex:/^(?:\+92|0)3[0-9]{9}$/',
+                'regex:/^923[0-9]{9}$/',
                 'exists:customers,mobile_number',
             ],
         ];
@@ -26,8 +29,13 @@ class ForgotPasswordRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'mobile_number.regex' => 'Please enter a valid Pakistani mobile number (e.g., 03001234567 or +923001234567)',
+            'mobile_number.regex' => 'Please enter a valid Pakistani mobile number (e.g., 03001234567 or +923001234567).',
             'mobile_number.exists' => 'No account found with this mobile number.',
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->normalizePakistanMobileField('mobile_number');
     }
 }

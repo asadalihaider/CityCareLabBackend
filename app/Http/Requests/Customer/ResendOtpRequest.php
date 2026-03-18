@@ -3,9 +3,11 @@
 namespace App\Http\Requests\Customer;
 
 use App\Http\Requests\Concerns\NormalizesPakistanMobile;
+use App\Models\Enum\OtpType;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
-class ResetPasswordRequest extends FormRequest
+class ResendOtpRequest extends FormRequest
 {
     use NormalizesPakistanMobile;
 
@@ -23,18 +25,16 @@ class ResetPasswordRequest extends FormRequest
                 'regex:/^923[0-9]{9}$/',
                 'exists:customers,mobile_number',
             ],
-            'otp' => ['required', 'string', 'size:6'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'type' => ['required', Rule::enum(OtpType::class)],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'mobile_number.regex' => 'Please enter a valid Pakistani mobile number (e.g., 03001234567 or +923001234567).',
-            'mobile_number.exists' => 'No account found with this mobile number.',
-            'otp.size' => 'OTP must be exactly 6 digits.',
-            'password.confirmed' => 'Password confirmation does not match.',
+            'mobile_number.regex' => 'Please enter a valid Pakistani mobile number (e.g., 923001234567).',
+            'mobile_number.exists' => 'Customer not found. Please register first.',
+            'type.enum' => 'Invalid OTP type specified.',
         ];
     }
 

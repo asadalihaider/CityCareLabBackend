@@ -5,18 +5,29 @@ namespace App\Services\Channels;
 use App\Models\Customer;
 use App\Notifications\PushNotification;
 use App\Services\Channels\Contracts\OutboxChannelContract;
+use App\Support\PakistanMobile;
 use Illuminate\Support\Facades\Log;
 
 class ExpoPushChannel implements OutboxChannelContract
 {
     public function isEnabled(): bool
     {
-        return (bool) config('outbox.channels.expo.enabled', true);
+        return (bool) config('outbox.channels.expo.enabled', false);
     }
 
     public function send(string $mobile, string $title, string $body, array $payload = []): bool
     {
-        $customer = Customer::where('mobile_number', $mobile)
+        $canonical = PakistanMobile::normalize($mobile);
+
+        if (! $canonical) {
+            Log::debug('ExpoPushChannel: Invalid mobile format.', [
+                'mobile' => $mobile,
+            ]);
+
+            return false;
+        }
+
+        $customer = Customer::where('mobile_number', $canonical)
             ->whereHas('expoTokens')
             ->first();
 

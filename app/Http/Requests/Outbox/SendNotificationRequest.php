@@ -2,11 +2,14 @@
 
 namespace App\Http\Requests\Outbox;
 
+use App\Http\Requests\Concerns\NormalizesPakistanMobile;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class SendNotificationRequest extends FormRequest
 {
+    use NormalizesPakistanMobile;
+
     public function authorize(): bool
     {
         return true;
@@ -20,7 +23,7 @@ class SendNotificationRequest extends FormRequest
             'mobile' => [
                 'required',
                 'string',
-                'regex:/^(?:\+92|0)3[0-9]{9}$/',
+                'regex:/^923[0-9]{9}$/',
             ],
             'event' => [
                 'required',
@@ -43,10 +46,6 @@ class SendNotificationRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        if ($this->has('mobile')) {
-            $this->merge([
-                'mobile' => preg_replace('/\D/', '', $this->mobile),
-            ]);
-        }
+        $this->normalizePakistanMobileField('mobile');
     }
 }

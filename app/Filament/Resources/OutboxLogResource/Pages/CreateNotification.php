@@ -9,6 +9,7 @@ use App\Models\Enum\OutboxChannel;
 use App\Models\Enum\OutboxStatus;
 use App\Models\OperatingCity;
 use App\Models\OutboxLog;
+use App\Support\PakistanMobile;
 use Carbon\Carbon;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -198,12 +199,17 @@ class CreateNotification extends Page
                 ->pluck('mobile_number')
                 ->toArray(),
 
-            'manual' => [preg_replace('/\D/', '', $data['mobile'] ?? '')],
+            'manual' => [PakistanMobile::normalize((string) ($data['mobile'] ?? ''))],
 
             default => [],
         };
 
-        return array_values(array_filter($numbers));
+        return collect($numbers)
+            ->map(fn ($mobile) => PakistanMobile::normalize((string) $mobile))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
     }
 
     private function countLabel(int $count): string

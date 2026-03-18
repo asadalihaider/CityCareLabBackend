@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Enum\CustomerStatus;
 use App\Models\Enum\Gender;
+use App\Support\PakistanMobile;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -47,6 +48,18 @@ class Customer extends Authenticatable
     public function getAuthIdentifierName()
     {
         return 'mobile_number';
+    }
+
+    public function setMobileNumberAttribute(?string $value): void
+    {
+        $this->attributes['mobile_number'] = PakistanMobile::normalize($value ?? '') ?? $value;
+    }
+
+    public function getMobileNumberLocalAttribute(): ?string
+    {
+        $mobile = $this->attributes['mobile_number'] ?? null;
+
+        return is_string($mobile) ? PakistanMobile::toLocal($mobile) : null;
     }
 
     public function isMobileVerified(): bool
