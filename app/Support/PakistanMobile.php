@@ -13,6 +13,10 @@ final class PakistanMobile
             return null;
         }
 
+        if (preg_match('/[A-Za-z]/', $input)) {
+            return null;
+        }
+
         $digits = preg_replace('/\D/', '', $input);
 
         if (preg_match('/^92(3\d{9})$/', $digits)) {

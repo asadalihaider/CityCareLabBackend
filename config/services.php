@@ -43,13 +43,13 @@ return [
     ],
 
     'bsms' => [
-        'api_url' => env('SMS_API_URL', 'https://bsms.its.com.pk/api.php'),
+        'api_url' => env('SMS_API_URL'),
         'api_key' => env('SMS_API_KEY'),
         'sender_id' => env('SMS_SENDER'),
     ],
 
     'whatsapp' => [
-        'api_url' => 'https://graph.facebook.com/v19.0',
+        'api_url' => env('WHATSAPP_API_URL'),
         'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
         'access_token' => env('WHATSAPP_ACCESS_TOKEN'),
     ],

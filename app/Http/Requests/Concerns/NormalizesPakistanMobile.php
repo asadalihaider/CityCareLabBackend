@@ -16,7 +16,7 @@ trait NormalizesPakistanMobile
         $normalized = PakistanMobile::normalize($raw);
 
         $this->merge([
-            $field => $normalized ?? preg_replace('/\D/', '', $raw),
+            $field => $normalized ?? $raw,
         ]);
     }
 
