@@ -4,9 +4,14 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\OutboxLogResource\Pages;
 use App\Filament\Resources\OutboxLogResource\Widgets\OutboxStatsWidget;
+use App\Jobs\ProcessOutboxJob;
 use App\Models\Enum\OutboxChannel;
 use App\Models\Enum\OutboxStatus;
 use App\Models\OutboxLog;
+use Filament\Infolists\Components\KeyValueEntry;
+use Filament\Infolists\Components\Section;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
@@ -14,6 +19,7 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 class OutboxLogResource extends Resource
 {
@@ -120,9 +126,88 @@ class OutboxLogResource extends Resource
             ])
             ->filtersLayout(Tables\Enums\FiltersLayout::AboveContentCollapsible)
             ->actions([
-                Tables\Actions\ViewAction::make(),
+                Tables\Actions\ViewAction::make()
+                    ->infolist([
+                        Section::make('Details')->schema([
+                            TextEntry::make('mobile')->label('Mobile'),
+                            TextEntry::make('event')->label('Event')->badge(),
+                            TextEntry::make('channel')
+                                ->label('Channel')
+                                ->formatStateUsing(fn (OutboxChannel|string|null $state) => $state instanceof OutboxChannel ? $state->label() : (string) $state),
+                            TextEntry::make('status')
+                                ->label('Status')
+                                ->formatStateUsing(fn (OutboxStatus|string|null $state) => $state instanceof OutboxStatus ? $state->label() : (string) $state)
+                                ->badge(),
+                            TextEntry::make('response')
+                                ->label('Provider Response / Failure Reason')
+                                ->placeholder('—')
+                                ->columnSpanFull(),
+                            KeyValueEntry::make('payload')->label('Payload')->columnSpanFull(),
+                            TextEntry::make('scheduled_at')->label('Scheduled For')->dateTime()->placeholder('—'),
+                            TextEntry::make('processed_at')->label('Processed At')->dateTime()->placeholder('—'),
+                            TextEntry::make('created_at')->label('Created At')->dateTime(),
+                        ])->columns('3'),
+                    ]),
+                Tables\Actions\Action::make('retry')
+                    ->label('Retry')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('warning')
+                    ->visible(fn (OutboxLog $record) => $record->status === OutboxStatus::FAILED)
+                    ->action(function (OutboxLog $record): void {
+                        static::retryRecord($record);
+
+                        Notification::make()
+                            ->title('Retry queued')
+                            ->body('The failed notification has been queued for retry.')
+                            ->success()
+                            ->send();
+                    }),
             ])
-            ->bulkActions([]);
+            ->bulkActions([
+                Tables\Actions\BulkAction::make('retry_failed')
+                    ->label('Retry Failed')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->action(function (Collection $records): void {
+                        $failed = $records->filter(fn (OutboxLog $record) => $record->status === OutboxStatus::FAILED);
+
+                        $failed->each(fn (OutboxLog $record) => static::retryRecord($record));
+
+                        Notification::make()
+                            ->title('Retries queued')
+                            ->body($failed->count().' failed notification(s) queued for retry.')
+                            ->success()
+                            ->send();
+                    }),
+            ]);
+    }
+
+    protected static function retryRecord(OutboxLog $record): void
+    {
+        $payload = is_array($record->payload) ? $record->payload : [];
+
+        if ($record->event === 'GENERAL') {
+            $payload = array_merge([
+                'title' => $record->title,
+                'body' => $record->body,
+            ], $payload);
+        }
+
+        $record->update([
+            'status' => OutboxStatus::PENDING,
+            'response' => null,
+            'processed_at' => null,
+            'scheduled_at' => now(),
+        ]);
+
+        ProcessOutboxJob::dispatch(
+            mobile: $record->mobile,
+            event: $record->event,
+            data: $payload,
+            channel: $record->channel,
+            outboxLogId: $record->id,
+        )->delay(now());
     }
 
     public static function getWidgets(): array

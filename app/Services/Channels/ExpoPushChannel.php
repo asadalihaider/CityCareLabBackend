@@ -5,6 +5,7 @@ namespace App\Services\Channels;
 use App\Models\Customer;
 use App\Notifications\PushNotification;
 use App\Services\Channels\Contracts\OutboxChannelContract;
+use App\Services\Channels\Data\ChannelSendResult;
 use App\Support\PakistanMobile;
 use Illuminate\Support\Facades\Log;
 
@@ -15,7 +16,7 @@ class ExpoPushChannel implements OutboxChannelContract
         return (bool) config('outbox.channels.expo.enabled', false);
     }
 
-    public function send(string $mobile, string $title, string $body, array $payload = []): bool
+    public function send(string $mobile, string $title, string $body, array $payload = []): ChannelSendResult
     {
         $canonical = PakistanMobile::normalize($mobile);
 
@@ -24,7 +25,7 @@ class ExpoPushChannel implements OutboxChannelContract
                 'mobile' => $mobile,
             ]);
 
-            return false;
+            return ChannelSendResult::fail('Invalid mobile format for Expo push.');
         }
 
         $customer = Customer::where('mobile_number', $canonical)
@@ -36,7 +37,7 @@ class ExpoPushChannel implements OutboxChannelContract
                 'mobile' => $mobile,
             ]);
 
-            return false;
+            return ChannelSendResult::fail('No customer with active Expo tokens found.');
         }
 
         try {
@@ -47,14 +48,14 @@ class ExpoPushChannel implements OutboxChannelContract
                 shouldBatch: false,
             ));
 
-            return true;
+            return ChannelSendResult::ok();
         } catch (\Throwable $e) {
             Log::error('ExpoPushChannel: Delivery failed.', [
                 'mobile' => $mobile,
                 'error' => $e->getMessage(),
             ]);
 
-            return false;
+            return ChannelSendResult::fail($e->getMessage());
         }
     }
 }

@@ -6,6 +6,7 @@ use App\Models\Enum\OutboxChannel;
 use App\Models\Enum\OutboxStatus;
 use App\Models\OutboxLog;
 use App\Services\Channels\Contracts\OutboxChannelContract;
+use App\Services\Channels\Data\ChannelSendResult;
 use App\Services\Channels\ExpoPushChannel;
 use App\Services\Channels\SmsChannel;
 use App\Services\Channels\WhatsAppChannel;
@@ -49,9 +50,14 @@ class OutboxService
         // Forced channel — attempt only that one, update the pre-created log entry.
         if ($forceChannel !== null) {
             $handler = $this->handlerFor($forceChannel);
-            $sent = $handler && $handler->isEnabled()
+            $result = $handler->isEnabled()
                 ? $handler->send($mobile, $title, $body, $data)
-                : false;
+                : ChannelSendResult::fail('Selected channel is disabled.');
+
+            $sent = $result->success;
+            $response = $sent
+                ? ($result->reason ?: 'Accepted by provider.')
+                : ($result->reason ?: 'Delivery failed via selected channel.');
 
             $this->persistLog($logId, [
                 'mobile' => $mobile,
@@ -60,6 +66,7 @@ class OutboxService
                 'title' => $title,
                 'body' => $body,
                 'status' => ($sent ? OutboxStatus::SENT : OutboxStatus::FAILED)->value,
+                'response' => $response,
                 'payload' => $data,
                 'processed_at' => now(),
             ]);
@@ -71,7 +78,12 @@ class OutboxService
         $channels = $this->getOrderedChannels();
 
         foreach ($channels as $index => ['enum' => $channelEnum, 'handler' => $handler]) {
-            $sent = $handler->send($mobile, $title, $body, $data);
+            $result = $handler->send($mobile, $title, $body, $data);
+            $sent = $result->success;
+
+            $response = $sent
+                ? ($result->reason ?: 'Accepted by provider.')
+                : ($result->reason ?: 'Delivery failed via channel.');
 
             $this->persistLog(null, [
                 'mobile' => $mobile,
@@ -80,6 +92,7 @@ class OutboxService
                 'title' => $title,
                 'body' => $body,
                 'status' => ($sent ? OutboxStatus::SENT : OutboxStatus::FAILED)->value,
+                'response' => $response,
                 'payload' => $data,
                 'processed_at' => now(),
             ]);
@@ -93,6 +106,7 @@ class OutboxService
                         'title' => $title,
                         'body' => $body,
                         'status' => OutboxStatus::SKIPPED->value,
+                        'response' => 'Skipped because a previous channel delivered successfully.',
                         'payload' => $data,
                         'processed_at' => now(),
                     ]);
@@ -122,13 +136,15 @@ class OutboxService
     protected function interpolate(string $text, array $data): string
     {
         foreach ($data as $key => $value) {
-            $text = str_replace("#{$key}", (string) $value, $text);
+            $replace = (string) $value;
+            $text = str_replace("#{{$key}}", $replace, $text);
+            $text = str_replace("#{$key}", $replace, $text);
         }
 
         return $text;
     }
 
-    protected function handlerFor(OutboxChannel $channel): ?OutboxChannelContract
+    protected function handlerFor(OutboxChannel $channel): OutboxChannelContract
     {
         return match ($channel) {
             OutboxChannel::EXPO => $this->expoPushChannel,

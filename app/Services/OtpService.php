@@ -27,13 +27,14 @@ class OtpService
                 payload: ['otp_type' => $type->value],
             );
 
-            if (! $sent) {
+            if (! $sent->success) {
                 Log::warning("SMS OTP delivery failed for {$mobileNumber}.", [
                     'type' => $type->label(),
+                    'reason' => $sent->reason,
                 ]);
             }
 
-            return $sent;
+            return $sent->success;
         } catch (\Exception $e) {
             Log::error("Failed to send SMS OTP to {$mobileNumber}: ".$e->getMessage());
 
