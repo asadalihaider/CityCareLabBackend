@@ -28,19 +28,19 @@ class ExpoPushChannel implements OutboxChannelContract
             return ChannelSendResult::fail('Invalid mobile format for Expo push.');
         }
 
-        $customer = Customer::where('mobile_number', $canonical)
-            ->whereHas('expoTokens')
-            ->first();
-
-        if (! $customer) {
-            Log::debug('ExpoPushChannel: No customer with active Expo tokens found.', [
-                'mobile' => $mobile,
-            ]);
-
-            return ChannelSendResult::fail('No customer with active Expo tokens found.');
-        }
-
         try {
+            $customer = Customer::where('mobile_number', $canonical)
+                ->whereHas('expoTokens')
+                ->first();
+
+            if (! $customer) {
+                Log::debug('ExpoPushChannel: No customer with active Expo tokens found.', [
+                    'mobile' => $mobile,
+                ]);
+
+                return ChannelSendResult::fail('No customer with active Expo tokens found.');
+            }
+
             $customer->notify(new PushNotification(
                 title: $title,
                 body: $body,
@@ -48,12 +48,17 @@ class ExpoPushChannel implements OutboxChannelContract
                 shouldBatch: false,
             ));
 
-            return ChannelSendResult::ok();
+            return ChannelSendResult::ok('Push notification sent via Expo.');
         } catch (\Throwable $e) {
             Log::error('ExpoPushChannel: Delivery failed.', [
                 'mobile' => $mobile,
+                'code' => $e->getCode(),
                 'error' => $e->getMessage(),
             ]);
+
+            if ($e->getCode() === '42S02') {
+                return ChannelSendResult::fail('Mobile app not installed or not registered for push notifications.');
+            }
 
             return ChannelSendResult::fail($e->getMessage());
         }

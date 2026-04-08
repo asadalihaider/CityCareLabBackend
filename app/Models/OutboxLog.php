@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\Enum\OutboxChannel;
 use App\Models\Enum\OutboxStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -14,32 +13,39 @@ class OutboxLog extends Model
     protected $fillable = [
         'mobile',
         'event',
-        'channel',
         'title',
         'body',
-        'status',
         'response',
         'payload',
+        'attempts',
         'scheduled_at',
         'processed_at',
     ];
 
     protected $casts = [
-        'channel' => OutboxChannel::class,
-        'status' => OutboxStatus::class,
         'payload' => 'array',
+        'attempts' => 'array',
         'scheduled_at' => 'datetime',
         'processed_at' => 'datetime',
     ];
 
-    public function scopeByChannel(Builder $query, OutboxChannel $channel): Builder
-    {
-        return $query->where('channel', $channel->value);
-    }
+    protected $appends = ['status'];
 
-    public function scopeByStatus(Builder $query, OutboxStatus $status): Builder
+    public function getStatusAttribute(): OutboxStatus
     {
-        return $query->where('status', $status->value);
+        $attempts = $this->attempts ?? [];
+
+        if (! is_array($attempts) || empty($attempts)) {
+            return OutboxStatus::FAILED;
+        }
+
+        foreach ($attempts as $attempt) {
+            if (isset($attempt['status']) && $attempt['status'] === 'sent') {
+                return OutboxStatus::SENT;
+            }
+        }
+
+        return OutboxStatus::FAILED;
     }
 
     public function scopeForMobile(Builder $query, string $mobile): Builder

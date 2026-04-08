@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Enum\OutboxChannel;
-use App\Models\Enum\OutboxStatus;
 use App\Models\OutboxLog;
 use App\Services\Channels\Contracts\OutboxChannelContract;
 use App\Services\Channels\Data\ChannelSendResult;
@@ -33,12 +32,18 @@ class OutboxService
             $this->persistLog($logId, [
                 'mobile' => $mobile,
                 'event' => $event,
-                'channel' => ($forceChannel ?? OutboxChannel::SMS)->value,
                 'title' => null,
                 'body' => null,
-                'status' => OutboxStatus::FAILED->value,
                 'response' => "Unknown event template: [{$event}]",
                 'payload' => $data,
+                'attempts' => [
+                    [
+                        'channel' => null,
+                        'status' => 'failed',
+                        'reason' => "Unknown event template: [{$event}]",
+                        'timestamp' => now()->format('M d, Y h:i A'),
+                    ],
+                ],
                 'processed_at' => now(),
             ]);
 
@@ -47,74 +52,87 @@ class OutboxService
 
         ['title' => $title, 'body' => $body] = $template;
 
-        // Forced channel — attempt only that one, update the pre-created log entry.
         if ($forceChannel !== null) {
             $handler = $this->handlerFor($forceChannel);
             $result = $handler->isEnabled()
                 ? $handler->send($mobile, $title, $body, $data)
                 : ChannelSendResult::fail('Selected channel is disabled.');
 
-            $sent = $result->success;
-            $response = $sent
-                ? ($result->reason ?: 'Accepted by provider.')
-                : ($result->reason ?: 'Delivery failed via selected channel.');
+            $attempt = [
+                'channel' => $forceChannel->value,
+                'status' => $result->success ? 'sent' : 'failed',
+                'reason' => $result->reason ?: ($result->success ? 'Delivered' : 'Delivery failed'),
+                'timestamp' => now()->format('M d, Y h:i A'),
+            ];
 
             $this->persistLog($logId, [
                 'mobile' => $mobile,
                 'event' => $event,
-                'channel' => $forceChannel->value,
                 'title' => $title,
                 'body' => $body,
-                'status' => ($sent ? OutboxStatus::SENT : OutboxStatus::FAILED)->value,
-                'response' => $response,
+                'response' => $result->reason,
                 'payload' => $data,
+                'attempts' => [$attempt],
                 'processed_at' => now(),
             ]);
 
             return;
         }
 
-        // Cascade mode — Expo → WhatsApp → SMS, stop at first success.
         $channels = $this->getOrderedChannels();
 
-        foreach ($channels as $index => ['enum' => $channelEnum, 'handler' => $handler]) {
-            $result = $handler->send($mobile, $title, $body, $data);
-            $sent = $result->success;
-
-            $response = $sent
-                ? ($result->reason ?: 'Accepted by provider.')
-                : ($result->reason ?: 'Delivery failed via channel.');
-
-            $this->persistLog(null, [
+        if (empty($channels)) {
+            $this->persistLog($logId, [
                 'mobile' => $mobile,
                 'event' => $event,
-                'channel' => $channelEnum->value,
                 'title' => $title,
                 'body' => $body,
-                'status' => ($sent ? OutboxStatus::SENT : OutboxStatus::FAILED)->value,
-                'response' => $response,
+                'response' => 'No messaging channels are enabled. Please configure at least one channel.',
                 'payload' => $data,
+                'attempts' => [
+                    [
+                        'channel' => null,
+                        'status' => 'failed',
+                        'reason' => 'No messaging channels are enabled.',
+                        'timestamp' => now()->format('M d, Y h:i A'),
+                    ],
+                ],
                 'processed_at' => now(),
             ]);
 
-            if ($sent) {
-                foreach (array_slice($channels, $index + 1) as ['enum' => $remainingEnum]) {
-                    $this->persistLog(null, [
-                        'mobile' => $mobile,
-                        'event' => $event,
-                        'channel' => $remainingEnum->value,
-                        'title' => $title,
-                        'body' => $body,
-                        'status' => OutboxStatus::SKIPPED->value,
-                        'response' => 'Skipped because a previous channel delivered successfully.',
-                        'payload' => $data,
-                        'processed_at' => now(),
-                    ]);
-                }
+            return;
+        }
 
-                return;
+        $attempts = [];
+
+        foreach ($channels as $index => ['enum' => $channelEnum, 'handler' => $handler]) {
+            $result = $handler->send($mobile, $title, $body, $data);
+
+            $attempt = [
+                'channel' => $channelEnum->value,
+                'status' => $result->success ? 'sent' : 'failed',
+                'reason' => $result->reason ?: ($result->success ? 'Delivered' : 'Delivery failed'),
+                'timestamp' => now()->format('M d, Y h:i A'),
+            ];
+
+            $attempts[] = $attempt;
+
+            // If success, stop trying other channels
+            if ($result->success) {
+                break;
             }
         }
+
+        $this->persistLog($logId, [
+            'mobile' => $mobile,
+            'event' => $event,
+            'title' => $title,
+            'body' => $body,
+            'response' => $this->summarizeAttempts($attempts),
+            'payload' => $data,
+            'attempts' => $attempts,
+            'processed_at' => now(),
+        ]);
     }
 
     public function resolveTemplate(string $event, array $data = []): ?array
@@ -164,6 +182,17 @@ class OutboxService
         return array_values(
             array_filter($all, fn (array $entry) => $entry['handler']->isEnabled())
         );
+    }
+
+    protected function summarizeAttempts(array $attempts): string
+    {
+        if (empty($attempts)) {
+            return 'No attempts recorded.';
+        }
+
+        return collect($attempts)
+            ->map(fn ($a) => ucfirst($a['channel'] ?? 'system').": {$a['status']}")
+            ->implode(' → ');
     }
 
     protected function persistLog(?int $logId, array $attributes): void

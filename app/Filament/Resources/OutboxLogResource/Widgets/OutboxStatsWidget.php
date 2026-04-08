@@ -11,12 +11,25 @@ class OutboxStatsWidget extends BaseWidget
 {
     protected function getStats(): array
     {
-        $sentToday = OutboxLog::byStatus(OutboxStatus::SENT)->whereDate('processed_at', today())->count();
-        $failedToday = OutboxLog::byStatus(OutboxStatus::FAILED)->whereDate('processed_at', today())->count();
-        $pending = OutboxLog::byStatus(OutboxStatus::PENDING)->count();
-        $sentThisMonth = OutboxLog::byStatus(OutboxStatus::SENT)
-            ->whereYear('processed_at', now()->year)
-            ->whereMonth('processed_at', now()->month)
+        $allLogs = OutboxLog::all();
+
+        $sentToday = $allLogs
+            ->filter(fn (OutboxLog $log) => $log->status === OutboxStatus::SENT && $log->processed_at?->isToday())
+            ->count();
+
+        $failedToday = $allLogs
+            ->filter(fn (OutboxLog $log) => $log->status === OutboxStatus::FAILED && $log->processed_at?->isToday())
+            ->count();
+
+        $pending = $allLogs
+            ->filter(fn (OutboxLog $log) => $log->processed_at === null || ($log->scheduled_at && $log->scheduled_at->isFuture()))
+            ->count();
+
+        $sentThisMonth = $allLogs
+            ->filter(fn (OutboxLog $log) => $log->status === OutboxStatus::SENT &&
+                $log->processed_at &&
+                $log->processed_at->isCurrentMonth()
+            )
             ->count();
 
         return [

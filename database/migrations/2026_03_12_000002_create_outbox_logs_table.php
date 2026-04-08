@@ -12,15 +12,16 @@ return new class extends Migration
             $table->id();
             $table->string('mobile', 20)->index();
             $table->string('event', 100)->index();
-            $table->string('channel', 20); // expo | whatsapp | sms
             $table->string('title')->nullable();
             $table->text('body')->nullable();
-            $table->string('status', 20)->default('pending'); // pending | sent | failed | skipped
-            $table->text('response')->nullable()->comment('Raw response from the channel provider');
-            $table->json('payload')->nullable()->comment('Original data payload passed with the event');
+            $table->text('response')->nullable();
+            $table->json('payload')->nullable();
+            $table->json('attempts')->nullable()
+                ->comment('Array: [{channel, status, reason, timestamp}, ...]');
+            $table->timestamp('scheduled_at')->nullable();
+            $table->timestamp('processed_at')->nullable();
             $table->timestamps();
 
-            $table->index(['status', 'channel']);
             $table->index('created_at');
         });
     }

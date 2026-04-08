@@ -5,7 +5,6 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\OutboxLogResource\Pages;
 use App\Filament\Resources\OutboxLogResource\Widgets\OutboxStatsWidget;
 use App\Jobs\ProcessOutboxJob;
-use App\Models\Enum\OutboxChannel;
 use App\Models\Enum\OutboxStatus;
 use App\Models\OutboxLog;
 use Filament\Infolists\Components\KeyValueEntry;
@@ -53,17 +52,16 @@ class OutboxLogResource extends Resource
                     ->badge()
                     ->color('gray'),
 
-                TextColumn::make('channel')
-                    ->label('Channel')
+                TextColumn::make('attempts')
+                    ->label('Attempts')
+                    ->getStateUsing(fn (OutboxLog $record) => count($record->attempts ?? []))
                     ->badge()
-                    ->getStateUsing(fn (OutboxLog $record) => $record->channel?->label())
-                    ->color(fn (OutboxLog $record) => $record->channel?->color()),
+                    ->color('gray')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('status')
                     ->label('Status')
-                    ->badge()
-                    ->getStateUsing(fn (OutboxLog $record) => $record->status?->label())
-                    ->color(fn (OutboxLog $record) => $record->status?->color()),
+                    ->badge(),
 
                 TextColumn::make('title')
                     ->label('Title')
@@ -92,14 +90,6 @@ class OutboxLogResource extends Resource
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
-                SelectFilter::make('channel')
-                    ->label('Channel')
-                    ->options(OutboxChannel::toOptions()),
-
-                SelectFilter::make('status')
-                    ->label('Status')
-                    ->options(OutboxStatus::toOptions()),
-
                 SelectFilter::make('event')
                     ->label('Event')
                     ->options(
@@ -108,10 +98,6 @@ class OutboxLogResource extends Resource
                             ->pluck('event', 'event')
                             ->toArray()
                     ),
-
-                Filter::make('pending')
-                    ->label('Pending / Scheduled')
-                    ->query(fn (Builder $query) => $query->byStatus(OutboxStatus::PENDING)),
 
                 Filter::make('today')
                     ->label('Today')
@@ -124,23 +110,41 @@ class OutboxLogResource extends Resource
                         now()->endOfWeek(),
                     ])),
             ])
-            ->filtersLayout(Tables\Enums\FiltersLayout::AboveContentCollapsible)
             ->actions([
                 Tables\Actions\ViewAction::make()
                     ->infolist([
                         Section::make('Details')->schema([
                             TextEntry::make('mobile')->label('Mobile'),
                             TextEntry::make('event')->label('Event')->badge(),
-                            TextEntry::make('channel')
-                                ->label('Channel')
-                                ->formatStateUsing(fn (OutboxChannel|string|null $state) => $state instanceof OutboxChannel ? $state->label() : (string) $state),
                             TextEntry::make('status')
                                 ->label('Status')
                                 ->formatStateUsing(fn (OutboxStatus|string|null $state) => $state instanceof OutboxStatus ? $state->label() : (string) $state)
                                 ->badge(),
                             TextEntry::make('response')
-                                ->label('Provider Response / Failure Reason')
+                                ->label('Summary')
                                 ->placeholder('—')
+                                ->columnSpanFull(),
+                            TextEntry::make('attempts')
+                                ->label('Delivery Attempts')
+                                ->getStateUsing(function (OutboxLog $record) {
+                                    $attempts = $record->attempts ?? [];
+
+                                    if (! is_array($attempts) || empty($attempts)) {
+                                        return 'No attempts recorded.';
+                                    }
+
+                                    return collect($attempts)
+                                        ->map(function ($attempt, $index) {
+                                            $ch = ucfirst($attempt['channel'] ?? 'system');
+                                            $st = ucfirst($attempt['status'] ?? 'unknown');
+                                            $reason = $attempt['reason'] ?? '';
+                                            $time = isset($attempt['timestamp']) ? " ({$attempt['timestamp']})" : '';
+
+                                            return '<strong>'.($index + 1).'. '.$ch.': '.$st.'</strong>'.($reason ? " - $reason" : '').$time;
+                                        })
+                                        ->implode('<br />');
+                                })
+                                ->html()
                                 ->columnSpanFull(),
                             KeyValueEntry::make('payload')->label('Payload')->columnSpanFull(),
                             TextEntry::make('scheduled_at')->label('Scheduled For')->dateTime()->placeholder('—'),
@@ -195,8 +199,8 @@ class OutboxLogResource extends Resource
         }
 
         $record->update([
-            'status' => OutboxStatus::PENDING,
             'response' => null,
+            'attempts' => null,
             'processed_at' => null,
             'scheduled_at' => now(),
         ]);
@@ -205,7 +209,7 @@ class OutboxLogResource extends Resource
             mobile: $record->mobile,
             event: $record->event,
             data: $payload,
-            channel: $record->channel,
+            channel: null, // Always cascade mode on retry
             outboxLogId: $record->id,
         )->delay(now());
     }

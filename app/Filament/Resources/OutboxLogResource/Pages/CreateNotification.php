@@ -6,7 +6,6 @@ use App\Filament\Resources\OutboxLogResource;
 use App\Jobs\ProcessOutboxJob;
 use App\Models\Customer;
 use App\Models\Enum\OutboxChannel;
-use App\Models\Enum\OutboxStatus;
 use App\Models\OperatingCity;
 use App\Models\OutboxLog;
 use App\Support\PakistanMobile;
@@ -97,7 +96,7 @@ class CreateNotification extends Page
                             ->helperText('Auto tries each channel in order and stops on first success'),
                         Forms\Components\DateTimePicker::make('scheduled_at')
                             ->label('Schedule For')
-                            ->minDate(now()->addMinutes(1))
+                            ->nullable()
                             ->seconds(false)
                             ->helperText('Leave empty to send immediately or set to future date/time to schedule'),
 
@@ -146,27 +145,29 @@ class CreateNotification extends Page
         }
 
         $channel = $data['channel'] !== 'auto' ? OutboxChannel::from($data['channel']) : null;
-        $scheduledAt = $data['scheduled_at'] ? Carbon::parse($data['scheduled_at']) : now();
+        $scheduledAt = $data['scheduled_at'] ? Carbon::parse($data['scheduled_at']) : null;
 
         foreach ($mobiles as $mobile) {
             $log = OutboxLog::create([
                 'mobile' => $mobile,
                 'event' => 'GENERAL',
-                'channel' => ($channel ?? OutboxChannel::EXPO)->value,
                 'title' => $data['title'],
                 'body' => $data['body'],
-                'status' => OutboxStatus::PENDING->value,
                 'scheduled_at' => $scheduledAt,
                 'payload' => [],
             ]);
 
-            ProcessOutboxJob::dispatch(
+            $job = ProcessOutboxJob::dispatch(
                 mobile: $mobile,
                 event: 'GENERAL',
                 data: ['title' => $data['title'], 'body' => $data['body']],
                 channel: $channel,
                 outboxLogId: $log->id,
-            )->delay($scheduledAt);
+            );
+
+            if ($scheduledAt) {
+                $job->delay($scheduledAt);
+            }
         }
 
         $label = $data['scheduled_at']
