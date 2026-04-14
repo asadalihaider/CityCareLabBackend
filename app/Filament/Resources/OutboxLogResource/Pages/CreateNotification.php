@@ -15,6 +15,7 @@ use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
+use Livewire\Attributes\URL;
 
 class CreateNotification extends Page
 {
@@ -24,14 +25,25 @@ class CreateNotification extends Page
 
     protected static ?string $title = 'Create Notification';
 
+    #[URL]
+    public $customer = '';
+
     public ?array $data = [];
 
     public function mount(): void
     {
-        $this->form->fill([
-            'recipient_type' => 'all_customers',
-            'channel' => 'auto',
-        ]);
+        if ($this->customer) {
+            $this->form->fill([
+                'recipient_type' => 'specific_customers',
+                'customer_ids' => [$this->customer],
+                'channel' => 'expo',
+            ]);
+        } else {
+            $this->form->fill([
+                'recipient_type' => 'all_customers',
+                'channel' => 'auto',
+            ]);
+        }
     }
 
     public function form(Form $form): Form
