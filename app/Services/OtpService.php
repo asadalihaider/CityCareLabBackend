@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Models\Enum\OtpType;
+use App\Models\Enum\OutboxChannel;
 use App\Models\Otp;
+use App\Models\OutboxLog;
 use App\Services\Channels\SmsChannel;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -27,18 +29,59 @@ class OtpService
                 payload: ['otp_type' => $type->value],
             );
 
-            if (! $sent->success) {
-                Log::warning("SMS OTP delivery failed for {$mobileNumber}.", [
-                    'type' => $type->label(),
-                    'reason' => $sent->reason,
-                ]);
-            }
+            $this->logToOutbox($mobileNumber, $title, $body, $type, $sent);
 
             return $sent->success;
         } catch (\Exception $e) {
             Log::error("Failed to send SMS OTP to {$mobileNumber}: ".$e->getMessage());
 
             return false;
+        }
+    }
+
+    private function logToOutbox(string $mobile, string $title, string $body, OtpType $type, $result): void
+    {
+        try {
+            $existingLog = OutboxLog::where('mobile', $mobile)
+                ->where('event', 'SYSTEM')
+                ->where('payload->otp_type', $type->value)
+                ->where('created_at', '>=', now()->subMinutes(5))
+                ->latest('created_at')
+                ->first();
+
+            $attempt = [
+                'channel' => OutboxChannel::SMS->value,
+                'status' => $result->success ? 'sent' : 'failed',
+                'reason' => $result->reason ?: ($result->success ? 'Delivered' : 'Failed'),
+                'timestamp' => now(),
+            ];
+
+            if ($existingLog) {
+                $attempts = $existingLog->attempts ?? [];
+                $attempts[] = $attempt;
+
+                $existingLog->update([
+                    'response' => $result->reason ?: ($result->success ? 'Delivered' : 'Failed'),
+                    'attempts' => $attempts,
+                    'processed_at' => now(),
+                ]);
+            } else {
+                OutboxLog::create([
+                    'mobile' => $mobile,
+                    'event' => 'SYSTEM',
+                    'title' => $title,
+                    'body' => $body,
+                    'response' => $result->reason ?: ($result->success ? 'Delivered' : 'Failed'),
+                    'payload' => ['otp_type' => $type->value],
+                    'attempts' => [$attempt],
+                    'processed_at' => now(),
+                ]);
+            }
+        } catch (\Throwable $e) {
+            Log::error('OtpService: Failed to log SMS to outbox.', [
+                'mobile' => $mobile,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 
