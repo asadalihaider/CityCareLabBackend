@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Enum\OutboxChannel;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -14,6 +15,7 @@ return new class extends Migration
             $table->string('event', 100)->index();
             $table->string('title')->nullable();
             $table->text('body')->nullable();
+            $table->enum('preferred_channel', OutboxChannel::values())->nullable()->comment('Preferred channel for sending, null = cascade');
             $table->text('response')->nullable();
             $table->json('payload')->nullable();
             $table->json('attempts')->nullable()

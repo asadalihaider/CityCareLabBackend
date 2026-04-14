@@ -4,7 +4,6 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\OutboxLogResource\Pages;
 use App\Filament\Resources\OutboxLogResource\Widgets\OutboxStatsWidget;
-use App\Jobs\ProcessOutboxJob;
 use App\Models\Enum\OutboxStatus;
 use App\Models\OutboxLog;
 use Filament\Infolists\Components\KeyValueEntry;
@@ -189,29 +188,11 @@ class OutboxLogResource extends Resource
 
     protected static function retryRecord(OutboxLog $record): void
     {
-        $payload = is_array($record->payload) ? $record->payload : [];
-
-        if ($record->event === 'GENERAL') {
-            $payload = array_merge([
-                'title' => $record->title,
-                'body' => $record->body,
-            ], $payload);
-        }
-
         $record->update([
             'response' => null,
             'attempts' => null,
             'processed_at' => null,
-            'scheduled_at' => now(),
         ]);
-
-        ProcessOutboxJob::dispatch(
-            mobile: $record->mobile,
-            event: $record->event,
-            data: $payload,
-            channel: null, // Always cascade mode on retry
-            outboxLogId: $record->id,
-        )->delay(now());
     }
 
     public static function getWidgets(): array

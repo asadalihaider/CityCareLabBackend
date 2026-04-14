@@ -2,8 +2,8 @@
 
 namespace App\Observers;
 
-use App\Jobs\ProcessOutboxJob;
 use App\Models\Booking;
+use App\Models\OutboxLog;
 
 class BookingObserver
 {
@@ -12,15 +12,19 @@ class BookingObserver
         $adminMobile = config('app.admin_mobile');
 
         if ($adminMobile) {
-            ProcessOutboxJob::dispatch(
-                mobile: $adminMobile,
-                event: 'BOOKING_CREATED',
-                data: [
+            $bookingDate = $booking->booking_date?->format('M j, Y');
+
+            OutboxLog::create([
+                'mobile' => $adminMobile,
+                'event' => 'SYSTEM',
+                'title' => 'Booking Received',
+                'body' => 'New booking request'.($bookingDate ? ' for '.$bookingDate : '').' has been received.',
+                'payload' => [
                     'booking_id' => $booking->id,
                     'patient_name' => $booking->patient_name,
-                    'booking_date' => $booking->booking_date?->format('M j, Y'),
+                    'booking_date' => $bookingDate,
                 ],
-            );
+            ]);
         }
     }
 

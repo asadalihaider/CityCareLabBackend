@@ -3,9 +3,7 @@
 namespace App\Filament\Resources\OutboxLogResource\Pages;
 
 use App\Filament\Resources\OutboxLogResource;
-use App\Jobs\ProcessOutboxJob;
 use App\Models\Customer;
-use App\Models\Enum\OutboxChannel;
 use App\Models\OperatingCity;
 use App\Models\OutboxLog;
 use App\Support\PakistanMobile;
@@ -143,7 +141,6 @@ class CreateNotification extends Page
     private function queueNotification(): void
     {
         $data = $this->form->getState();
-
         $mobiles = $this->resolveMobiles($data);
 
         if (empty($mobiles)) {
@@ -156,33 +153,22 @@ class CreateNotification extends Page
             return;
         }
 
-        $channel = $data['channel'] !== 'auto' ? OutboxChannel::from($data['channel']) : null;
         $scheduledAt = $data['scheduled_at'] ? Carbon::parse($data['scheduled_at']) : null;
+        $channel = $data['channel'] !== 'auto' ? $data['channel'] : null;
 
         foreach ($mobiles as $mobile) {
-            $log = OutboxLog::create([
+            OutboxLog::create([
                 'mobile' => $mobile,
-                'event' => 'GENERAL',
+                'event' => 'IN_APP',
                 'title' => $data['title'],
                 'body' => $data['body'],
-                'scheduled_at' => $scheduledAt,
+                'preferred_channel' => $channel,
                 'payload' => [],
+                'scheduled_at' => $scheduledAt,
             ]);
-
-            $job = ProcessOutboxJob::dispatch(
-                mobile: $mobile,
-                event: 'GENERAL',
-                data: ['title' => $data['title'], 'body' => $data['body']],
-                channel: $channel,
-                outboxLogId: $log->id,
-            );
-
-            if ($scheduledAt) {
-                $job->delay($scheduledAt);
-            }
         }
 
-        $label = $data['scheduled_at']
+        $label = $scheduledAt
             ? 'Scheduled for '.$scheduledAt->format('M j, Y g:i A')
             : 'Queued for immediate delivery';
 

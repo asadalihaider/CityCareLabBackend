@@ -3,8 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Requests\Outbox\SendNotificationRequest;
-use App\Jobs\ProcessOutboxJob;
-use App\Models\Enum\OutboxChannel;
+use App\Models\OutboxLog;
 
 class OutboxController extends BaseApiController
 {
@@ -13,20 +12,17 @@ class OutboxController extends BaseApiController
         return $this->executeWithExceptionHandling(function () use ($request) {
             $validated = $request->validated();
 
-            ProcessOutboxJob::dispatch(
-                mobile: $validated['mobile'],
-                event: $validated['event'],
-                data: $validated['data'] ?? [],
-                channel: isset($validated['channel']) ? OutboxChannel::from($validated['channel']) : null,
-            );
+            OutboxLog::create([
+                'mobile' => $validated['mobile'],
+                'event' => 'API_CLIENT',
+                'title' => $validated['title'],
+                'body' => $validated['body'],
+                'preferred_channel' => isset($validated['channel']) && $validated['channel'] !== 'auto' ? $validated['channel'] : null,
+                'payload' => $validated['data'] ?? [],
+            ]);
 
-            return $this->successResponse(
-                data: [
-                    'status' => 'queued',
-                    'channel' => $validated['channel'] ?? 'auto',
-                ],
-                message: 'Notification processed successfully.',
-            );
+            return $this->successResponse(null, 'Notification queued successfully.');
+
         }, 'Failed to queue notification.');
     }
 }

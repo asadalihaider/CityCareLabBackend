@@ -9,7 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('otp:clean-expired')->monthly();
-Schedule::command('queue:work --stop-when-empty --queue=default --tries=3')
-    ->everyMinute()
-    ->withoutOverlapping(5)
-    ->runInBackground();
+Schedule::command('outbox:process')->everyMinute()->withoutOverlapping(5);

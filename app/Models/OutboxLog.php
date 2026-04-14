@@ -15,6 +15,7 @@ class OutboxLog extends Model
         'event',
         'title',
         'body',
+        'preferred_channel',
         'response',
         'payload',
         'attempts',

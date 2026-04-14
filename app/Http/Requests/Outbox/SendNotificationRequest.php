@@ -18,7 +18,7 @@ class SendNotificationRequest extends FormRequest
 
     public function rules(): array
     {
-        $validEvents = array_keys(config('outbox.templates', []));
+        $validChannels = array_merge(['auto'], OutboxChannel::values());
 
         return [
             'mobile' => [
@@ -26,16 +26,17 @@ class SendNotificationRequest extends FormRequest
                 'string',
                 'regex:/^923[0-9]{9}$/',
             ],
-            'event' => [
+            'title' => [
                 'required',
                 'string',
-                Rule::in($validEvents),
+                'max:255',
             ],
+            'body' => ['required', 'string'],
             'channel' => [
                 'sometimes',
                 'nullable',
                 'string',
-                Rule::in(OutboxChannel::values()),
+                Rule::in($validChannels),
             ],
             'data' => ['sometimes', 'array'],
         ];
@@ -43,18 +44,15 @@ class SendNotificationRequest extends FormRequest
 
     public function messages(): array
     {
-        $validEvents = implode(', ', array_keys(config('outbox.templates', [])));
-
         return [
             'mobile.regex' => 'Please enter a valid Pakistani mobile number (e.g. 923001234567).',
-            'event.in' => "The event must be one of: {$validEvents}.",
         ];
     }
 
     protected function prepareForValidation(): void
     {
         $this->normalizePakistanMobileField('mobile');
-        
+
         if ($this->has('channel') && is_string($this->channel)) {
             $this->merge([
                 'channel' => strtolower(trim($this->channel)),
