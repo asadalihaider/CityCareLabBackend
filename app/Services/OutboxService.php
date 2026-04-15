@@ -22,28 +22,27 @@ class OutboxService
     public function send(
         string $mobile,
         string $event,
-        ?string $title = null,
-        ?string $body = null,
         array $data = [],
         ?OutboxChannel $channel = null,
         ?int $logId = null,
     ): void {
-        $title = $this->resolveString($title ?? $data['title'] ?? null);
-        $body = $this->resolveString($body ?? $data['body'] ?? null);
+        $title = $this->resolveString($data['title'] ?? null);
+        $body = $this->resolveString($data['body'] ?? null);
 
         if (! $title || ! $body) {
             if ($logId && $log = OutboxLog::find($logId)) {
-                $title ??= $log->title;
-                $body ??= $log->body;
+                $payload = is_array($log->payload) ? $log->payload : [];
+                $title ??= $this->resolveString($payload['title'] ?? null);
+                $body ??= $this->resolveString($payload['body'] ?? null);
                 $channel ??= $log->preferred_channel ? OutboxChannel::from($log->preferred_channel) : null;
             }
         }
 
         $attempts = ($title && $body)
-            ? ($channel ? $this->tryChannel($mobile, $title, $body, $data, $channel) : $this->tryCascade($mobile, $title, $body, $data))
+            ? ($channel ? $this->tryChannel($mobile, $data, $channel) : $this->tryCascade($mobile, $data))
             : [['channel' => null, 'status' => 'failed', 'reason' => 'Missing title or body', 'timestamp' => now()]];
 
-        $this->persistLog($logId, compact('mobile', 'event', 'title', 'body', 'data') + [
+        $this->persistLog($logId, compact('mobile', 'event') + [
             'response' => $this->summarize($attempts),
             'payload' => $data,
             'attempts' => $attempts,
@@ -56,17 +55,17 @@ class OutboxService
         return $value && trim($value) ? trim($value) : null;
     }
 
-    private function tryChannel(string $mobile, string $title, string $body, array $data, OutboxChannel $channel): array
+    private function tryChannel(string $mobile, array $data, OutboxChannel $channel): array
     {
         $handler = $this->getHandler($channel);
         $result = $handler->isEnabled()
-            ? $handler->send($mobile, $title, $body, $data)
+            ? $handler->send($mobile, $data)
             : ChannelSendResult::fail('Channel disabled');
 
         return [$this->recordAttempt($channel->value, $result)];
     }
 
-    private function tryCascade(string $mobile, string $title, string $body, array $data): array
+    private function tryCascade(string $mobile, array $data): array
     {
         $channels = [
             OutboxChannel::EXPO,
@@ -82,7 +81,7 @@ class OutboxService
                 continue;
             }
 
-            $result = $handler->send($mobile, $title, $body, $data);
+            $result = $handler->send($mobile, $data);
             $attempts[] = $this->recordAttempt($channelEnum->value, $result);
 
             if ($result->success) {

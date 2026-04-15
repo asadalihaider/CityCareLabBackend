@@ -67,8 +67,7 @@ class OutboxLogResource extends Resource
 
                 TextColumn::make('title')
                     ->label('Title')
-                    ->limit(40)
-                    ->tooltip(fn (OutboxLog $record) => $record->title),
+                    ->getStateUsing(fn (OutboxLog $record) => data_get($record->payload, 'title')),
 
                 TextColumn::make('scheduled_at')
                     ->label('Scheduled For')
@@ -116,11 +115,19 @@ class OutboxLogResource extends Resource
                     ->infolist([
                         Section::make('Details')->schema([
                             TextEntry::make('mobile')->label('Mobile'),
-                            TextEntry::make('event')->label('Event')->badge(),
+                            TextEntry::make('event')
+                                ->label('Event')
+                                ->badge()
+                                ->colors([
+                                    'gray' => 'IN_APP',
+                                    'danger' => 'SYSTEM',
+                                    'primary' => 'API_CLIENT',
+                                ]),
                             TextEntry::make('status')
                                 ->label('Status')
                                 ->formatStateUsing(fn (OutboxStatus|string|null $state) => $state instanceof OutboxStatus ? $state->label() : (string) $state)
-                                ->badge(),
+                                ->badge()
+                                ->color(fn ($record) => $record->status->color()),
                             TextEntry::make('response')
                                 ->label('Summary')
                                 ->placeholder('—')
@@ -152,14 +159,6 @@ class OutboxLogResource extends Resource
                                 })
                                 ->html()
                                 ->columnSpanFull(),
-                            TextEntry::make('title')
-                                ->label('Title')
-                                ->placeholder('—'),
-                            TextEntry::make('body')
-                                ->label('Message Body')
-                                ->limit(100)
-                                ->tooltip(fn (OutboxLog $record) => $record->body)
-                                ->placeholder('—'),
                             KeyValueEntry::make('payload')
                                 ->label('Payload')
                                 ->columnSpanFull(),

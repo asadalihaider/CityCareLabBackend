@@ -42,13 +42,12 @@ class ProcessOutboxCommand extends Command
         foreach ($logs as $log) {
             try {
                 $channel = $log->preferred_channel ? OutboxChannel::from($log->preferred_channel) : null;
+                $payload = is_array($log->payload) ? $log->payload : [];
 
                 $this->outboxService->send(
                     mobile: $log->mobile,
                     event: $log->event,
-                    title: $log->title,
-                    body: $log->body,
-                    data: is_array($log->payload) ? $log->payload : [],
+                    data: $payload,
                     channel: $channel,
                     logId: $log->id,
                 );

@@ -2,6 +2,7 @@
 
 namespace App\Services\Channels;
 
+use App\Services\Channels\Concerns\ResolvesMessagePayload;
 use App\Services\Channels\Contracts\OutboxChannelContract;
 use App\Services\Channels\Data\ChannelSendResult;
 use App\Support\PakistanMobile;
@@ -10,12 +11,14 @@ use Illuminate\Support\Facades\Log;
 
 class SmsChannel implements OutboxChannelContract
 {
+    use ResolvesMessagePayload;
+
     public function isEnabled(): bool
     {
         return (bool) config('outbox.channels.sms.enabled', false);
     }
 
-    public function send(string $mobile, string $title, string $body, array $payload = []): ChannelSendResult
+    public function send(string $mobile, array $payload = []): ChannelSendResult
     {
         $canonical = PakistanMobile::normalize($mobile);
 
@@ -25,6 +28,13 @@ class SmsChannel implements OutboxChannelContract
             ]);
 
             return ChannelSendResult::fail('Invalid mobile format for SMS delivery.');
+        }
+
+        $title = $this->resolveMessagePart($payload['title'] ?? null);
+        $body = $this->resolveMessagePart($payload['body'] ?? null);
+
+        if (! $title || ! $body) {
+            return ChannelSendResult::fail('SMS payload must contain non-empty title and body.');
         }
 
         $apiUrl = config('services.bsms.api_url', '/');

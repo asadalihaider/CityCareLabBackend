@@ -13,8 +13,6 @@ class OutboxLog extends Model
     protected $fillable = [
         'mobile',
         'event',
-        'title',
-        'body',
         'preferred_channel',
         'response',
         'payload',

@@ -13,8 +13,6 @@ return new class extends Migration
             $table->id();
             $table->string('mobile', 20)->index();
             $table->string('event', 100)->index();
-            $table->string('title')->nullable();
-            $table->text('body')->nullable();
             $table->enum('preferred_channel', OutboxChannel::values())->nullable()->comment('Preferred channel for sending, null = cascade');
             $table->text('response')->nullable();
             $table->json('payload')->nullable();

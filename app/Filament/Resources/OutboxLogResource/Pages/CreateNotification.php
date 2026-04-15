@@ -160,10 +160,11 @@ class CreateNotification extends Page
             OutboxLog::create([
                 'mobile' => $mobile,
                 'event' => 'IN_APP',
-                'title' => $data['title'],
-                'body' => $data['body'],
                 'preferred_channel' => $channel,
-                'payload' => [],
+                'payload' => [
+                    'title' => $data['title'],
+                    'body' => $data['body'],
+                ],
                 'scheduled_at' => $scheduledAt,
             ]);
         }

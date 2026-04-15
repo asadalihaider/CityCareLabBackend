@@ -24,9 +24,11 @@ class OtpService
 
             $sent = $this->smsChannel->send(
                 mobile: $mobileNumber,
-                title: $title,
-                body: $body,
-                payload: ['otp_type' => $type->value],
+                payload: [
+                    'title' => $title,
+                    'body' => $body,
+                    'otp_type' => $type->value,
+                ],
             );
 
             $this->logToOutbox($mobileNumber, $title, $body, $type, $sent);
@@ -59,9 +61,15 @@ class OtpService
             if ($existingLog) {
                 $attempts = $existingLog->attempts ?? [];
                 $attempts[] = $attempt;
+                $payload = is_array($existingLog->payload) ? $existingLog->payload : [];
 
                 $existingLog->update([
                     'response' => $result->reason ?: ($result->success ? 'Delivered' : 'Failed'),
+                    'payload' => array_merge($payload, [
+                        'title' => $title,
+                        'body' => $body,
+                        'otp_type' => $type->value,
+                    ]),
                     'attempts' => $attempts,
                     'processed_at' => now(),
                 ]);
@@ -69,10 +77,12 @@ class OtpService
                 OutboxLog::create([
                     'mobile' => $mobile,
                     'event' => 'SYSTEM',
-                    'title' => $title,
-                    'body' => $body,
                     'response' => $result->reason ?: ($result->success ? 'Delivered' : 'Failed'),
-                    'payload' => ['otp_type' => $type->value],
+                    'payload' => [
+                        'title' => $title,
+                        'body' => $body,
+                        'otp_type' => $type->value,
+                    ],
                     'attempts' => [$attempt],
                     'processed_at' => now(),
                 ]);

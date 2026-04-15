@@ -2,6 +2,7 @@
 
 namespace App\Services\Channels;
 
+use App\Services\Channels\Concerns\ResolvesMessagePayload;
 use App\Services\Channels\Contracts\OutboxChannelContract;
 use App\Services\Channels\Data\ChannelSendResult;
 use App\Support\PakistanMobile;
@@ -10,12 +11,14 @@ use Illuminate\Support\Facades\Log;
 
 class WhatsAppChannel implements OutboxChannelContract
 {
+    use ResolvesMessagePayload;
+
     public function isEnabled(): bool
     {
         return (bool) config('outbox.channels.whatsapp.enabled', false);
     }
 
-    public function send(string $mobile, string $title, string $body, array $payload = []): ChannelSendResult
+    public function send(string $mobile, array $payload = []): ChannelSendResult
     {
         $canonical = PakistanMobile::normalize($mobile);
 
@@ -42,7 +45,7 @@ class WhatsAppChannel implements OutboxChannelContract
         }
 
         try {
-            $messagePayload = $this->buildMessagePayload($canonical, $title, $body, $payload);
+            $messagePayload = $this->buildMessagePayload($canonical, $payload);
 
             if ($messagePayload === false) {
                 return ChannelSendResult::fail('WhatsApp template payload is invalid or incomplete.');
@@ -95,7 +98,7 @@ class WhatsAppChannel implements OutboxChannelContract
         return (string) preg_replace('/^Bearer\s+/i', '', $clean);
     }
 
-    protected function buildMessagePayload(string $to, string $title, string $body, array $payload): array|false
+    protected function buildMessagePayload(string $to, array $payload): array|false
     {
         $basePayload = [
             'messaging_product' => 'whatsapp',
@@ -111,6 +114,13 @@ class WhatsAppChannel implements OutboxChannelContract
 
         if ($templatePayload !== null) {
             return array_merge($basePayload, $templatePayload);
+        }
+
+        $title = $this->resolveMessagePart($payload['title'] ?? null);
+        $body = $this->resolveMessagePart($payload['body'] ?? null);
+
+        if (! $title || ! $body) {
+            return false;
         }
 
         return array_merge($basePayload, [
