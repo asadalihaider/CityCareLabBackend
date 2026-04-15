@@ -9,7 +9,6 @@ enum OutboxStatus: string
     case PENDING = 'pending';
     case SENT = 'sent';
     case FAILED = 'failed';
-    case SKIPPED = 'skipped';
 
     public function label(): string
     {
@@ -17,7 +16,6 @@ enum OutboxStatus: string
             self::PENDING => 'Pending',
             self::SENT => 'Sent',
             self::FAILED => 'Failed',
-            self::SKIPPED => 'Skipped',
         };
     }
 
@@ -27,7 +25,6 @@ enum OutboxStatus: string
             self::PENDING => 'gray',
             self::SENT => 'success',
             self::FAILED => 'danger',
-            self::SKIPPED => 'warning',
         };
     }
 }

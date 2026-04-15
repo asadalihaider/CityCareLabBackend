@@ -49,18 +49,21 @@ class OutboxLogResource extends Resource
                     ->label('Event')
                     ->searchable()
                     ->badge()
-                    ->color('gray'),
+                    ->colors([
+                        'gray' => 'IN_APP',
+                        'danger' => 'SYSTEM',
+                        'primary' => 'API_CLIENT',
+                    ]),
 
                 TextColumn::make('attempts')
                     ->label('Attempts')
                     ->getStateUsing(fn (OutboxLog $record) => count($record->attempts ?? []))
-                    ->badge()
-                    ->color('gray')
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('status')
                     ->label('Status')
-                    ->badge(),
+                    ->badge()
+                    ->color(fn ($record) => $record->status->color()),
 
                 TextColumn::make('title')
                     ->label('Title')
@@ -72,7 +75,7 @@ class OutboxLogResource extends Resource
                     ->dateTime()
                     ->sortable()
                     ->placeholder('—')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('processed_at')
                     ->label('Processed At')
@@ -91,12 +94,11 @@ class OutboxLogResource extends Resource
             ->filters([
                 SelectFilter::make('event')
                     ->label('Event')
-                    ->options(
-                        fn () => OutboxLog::query()
-                            ->distinct()
-                            ->pluck('event', 'event')
-                            ->toArray()
-                    ),
+                    ->options([
+                        'SYSTEM' => 'System',
+                        'IN_APP' => 'In App',
+                        'API_CLIENT' => 'API Client',
+                    ]),
 
                 Filter::make('today')
                     ->label('Today')
