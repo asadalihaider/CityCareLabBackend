@@ -42,18 +42,15 @@ class WhatsAppChannel implements OutboxChannelContract
         }
 
         try {
+            $messagePayload = $this->buildMessagePayload($canonical, $title, $body, $payload);
+
+            if ($messagePayload === false) {
+                return ChannelSendResult::fail('WhatsApp template payload is invalid or incomplete.');
+            }
+
             $response = Http::withToken($token)
                 ->timeout(15)
-                ->post("{$apiUrl}/{$phoneNumberId}/messages", [
-                    'messaging_product' => 'whatsapp',
-                    'recipient_type' => 'individual',
-                    'to' => $canonical,
-                    'type' => 'text',
-                    'text' => [
-                        'preview_url' => false,
-                        'body' => "*{$title}*\n\n{$body}",
-                    ],
-                ]);
+                ->post("{$apiUrl}/{$phoneNumberId}/messages", $messagePayload);
 
             if ($response->successful()) {
                 $json = $response->json();
@@ -96,5 +93,109 @@ class WhatsAppChannel implements OutboxChannelContract
         $clean = trim($token);
 
         return (string) preg_replace('/^Bearer\s+/i', '', $clean);
+    }
+
+    protected function buildMessagePayload(string $to, string $title, string $body, array $payload): array|false
+    {
+        $basePayload = [
+            'messaging_product' => 'whatsapp',
+            'recipient_type' => 'individual',
+            'to' => $to,
+        ];
+
+        $templatePayload = $this->resolveTemplatePayload($payload);
+
+        if ($templatePayload === false) {
+            return false;
+        }
+
+        if ($templatePayload !== null) {
+            return array_merge($basePayload, $templatePayload);
+        }
+
+        return array_merge($basePayload, [
+            'type' => 'text',
+            'text' => [
+                'preview_url' => false,
+                'body' => "*{$title}*\n\n{$body}",
+            ],
+        ]);
+    }
+
+    protected function resolveTemplatePayload(array $payload): array|false|null
+    {
+        $template = $payload['template'] ?? null;
+
+        if (is_array($template) && ! empty($template)) {
+            if (! $this->isValidTemplateDefinition($template)) {
+                Log::warning('WhatsAppChannel: Invalid inline template payload structure.', [
+                    'has_name' => isset($template['name']),
+                    'has_language_code' => isset($template['language']['code']),
+                ]);
+
+                return false;
+            }
+
+            return [
+                'type' => 'template',
+                'template' => $template,
+            ];
+        }
+
+        $selector = $this->resolveTemplateSelector($payload);
+
+        if ($selector === null) {
+            return null;
+        }
+
+        $templates = $payload['templates'] ?? [];
+
+        if (! is_array($templates) || ! isset($templates[$selector]) || ! is_array($templates[$selector])) {
+            Log::warning('WhatsAppChannel: Template selector not found in payload.', [
+                'template_selector' => $selector,
+                'available_templates' => is_array($templates) ? array_keys($templates) : [],
+            ]);
+
+            return false;
+        }
+
+        if (! $this->isValidTemplateDefinition($templates[$selector])) {
+            Log::warning('WhatsAppChannel: Selected template has invalid structure.', [
+                'template_selector' => $selector,
+                'has_name' => isset($templates[$selector]['name']),
+                'has_language_code' => isset($templates[$selector]['language']['code']),
+            ]);
+
+            return false;
+        }
+
+        return [
+            'type' => 'template',
+            'template' => $templates[$selector],
+        ];
+    }
+
+    protected function resolveTemplateSelector(array $payload): ?string
+    {
+        foreach (['event', 'template_name', 'template'] as $key) {
+            $value = $payload[$key] ?? null;
+
+            if (is_string($value) && trim($value) !== '') {
+                return trim($value);
+            }
+        }
+
+        return null;
+    }
+
+    protected function isValidTemplateDefinition(array $template): bool
+    {
+        $name = $template['name'] ?? null;
+        $languageCode = $template['language']['code'] ?? null;
+
+        return is_string($name)
+            && trim($name) !== ''
+            && is_string($languageCode)
+            && trim($languageCode) !== '';
     }
 }

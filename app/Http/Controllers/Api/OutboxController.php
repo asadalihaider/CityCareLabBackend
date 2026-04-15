@@ -11,14 +11,15 @@ class OutboxController extends BaseApiController
     {
         return $this->executeWithExceptionHandling(function () use ($request) {
             $validated = $request->validated();
+            $payload = $validated['data'];
 
             OutboxLog::create([
                 'mobile' => $validated['mobile'],
                 'event' => 'API_CLIENT',
-                'title' => $validated['title'],
-                'body' => $validated['body'],
+                'title' => $payload['title'] ?? null,
+                'body' => $payload['body'] ?? null,
                 'preferred_channel' => isset($validated['channel']) && $validated['channel'] !== 'auto' ? $validated['channel'] : null,
-                'payload' => $validated['data'] ?? [],
+                'payload' => $payload,
             ]);
 
             return $this->successResponse(null, 'Notification queued successfully.');
