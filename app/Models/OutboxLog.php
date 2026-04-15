@@ -34,6 +34,10 @@ class OutboxLog extends Model
 
     public function getStatusAttribute(): OutboxStatus
     {
+        if ($this->processed_at === null) {
+            return OutboxStatus::PENDING;
+        }
+
         $attempts = $this->attempts ?? [];
 
         if (! is_array($attempts) || empty($attempts)) {

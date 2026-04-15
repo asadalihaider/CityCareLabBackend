@@ -129,7 +129,7 @@ class OutboxLogResource extends Resource
                                     $attempts = $record->attempts ?? [];
 
                                     if (! is_array($attempts) || empty($attempts)) {
-                                        return 'No attempts recorded.';
+                                        return $record->processed_at ? 'No attempts recorded.' : '—';
                                     }
 
                                     return collect($attempts)
@@ -137,18 +137,41 @@ class OutboxLogResource extends Resource
                                             $ch = ucfirst($attempt['channel'] ?? 'system');
                                             $st = ucfirst($attempt['status'] ?? 'unknown');
                                             $reason = $attempt['reason'] ?? '';
-                                            $time = isset($attempt['timestamp']) ? " ({$attempt['timestamp']})" : '';
 
-                                            return '<strong>'.($index + 1).'. '.$ch.': '.$st.'</strong>'.($reason ? " - $reason" : '').$time;
+                                            $timestamp = $attempt['timestamp'] ?? null;
+                                            $timeStr = '';
+                                            if ($timestamp) {
+                                                $timeStr = ' ('.(\Illuminate\Support\Carbon::parse($timestamp)->format('M d, Y h:i A')).')';
+                                            }
+
+                                            return '<strong>'.($index + 1).'. '.$ch.': '.$st.'</strong>'.($reason ? " - $reason" : '').$timeStr;
                                         })
                                         ->implode('<br />');
                                 })
                                 ->html()
                                 ->columnSpanFull(),
-                            KeyValueEntry::make('payload')->label('Payload')->columnSpanFull(),
-                            TextEntry::make('scheduled_at')->label('Scheduled For')->dateTime()->placeholder('—'),
-                            TextEntry::make('processed_at')->label('Processed At')->dateTime()->placeholder('—'),
-                            TextEntry::make('created_at')->label('Created At')->dateTime(),
+                            TextEntry::make('title')
+                                ->label('Title')
+                                ->placeholder('—'),
+                            TextEntry::make('body')
+                                ->label('Message Body')
+                                ->limit(100)
+                                ->tooltip(fn (OutboxLog $record) => $record->body)
+                                ->placeholder('—'),
+                            KeyValueEntry::make('payload')
+                                ->label('Payload')
+                                ->columnSpanFull(),
+                            TextEntry::make('scheduled_at')
+                                ->label('Scheduled For')
+                                ->dateTime()
+                                ->placeholder('—'),
+                            TextEntry::make('processed_at')
+                                ->label('Processed At')
+                                ->dateTime()
+                                ->placeholder('—'),
+                            TextEntry::make('created_at')
+                                ->label('Created At')
+                                ->dateTime(),
                         ])->columns('3'),
                     ]),
                 Tables\Actions\Action::make('retry')

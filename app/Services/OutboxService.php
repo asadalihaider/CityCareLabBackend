@@ -68,26 +68,30 @@ class OutboxService
 
     private function tryCascade(string $mobile, string $title, string $body, array $data): array
     {
-        $handlers = [
-            OutboxChannel::EXPO => $this->expoPushChannel,
-            OutboxChannel::WHATSAPP => $this->whatsAppChannel,
-            OutboxChannel::SMS => $this->smsChannel,
+        $channels = [
+            OutboxChannel::EXPO,
+            OutboxChannel::WHATSAPP,
+            OutboxChannel::SMS,
         ];
 
-        $enabled = array_filter($handlers, fn ($h) => $h->isEnabled());
-
-        if (empty($enabled)) {
-            return [['channel' => null, 'status' => 'failed', 'reason' => 'No channels enabled', 'timestamp' => now()]];
-        }
-
         $attempts = [];
-        foreach ($enabled as $channel => $handler) {
-            /** @var OutboxChannel $channel */
+        foreach ($channels as $channelEnum) {
+            $handler = $this->getHandler($channelEnum);
+
+            if (! $handler->isEnabled()) {
+                continue;
+            }
+
             $result = $handler->send($mobile, $title, $body, $data);
-            $attempts[] = $this->recordAttempt($channel->value, $result);
+            $attempts[] = $this->recordAttempt($channelEnum->value, $result);
+
             if ($result->success) {
                 break;
             }
+        }
+
+        if (empty($attempts)) {
+            return [['channel' => null, 'status' => 'failed', 'reason' => 'No channels enabled', 'timestamp' => now()]];
         }
 
         return $attempts;
