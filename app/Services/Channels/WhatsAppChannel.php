@@ -2,6 +2,7 @@
 
 namespace App\Services\Channels;
 
+use App\Models\Enum\NotificationEvent;
 use App\Services\Channels\Concerns\ResolvesMessagePayload;
 use App\Services\Channels\Contracts\OutboxChannelContract;
 use App\Services\Channels\Data\ChannelSendResult;
@@ -45,15 +46,15 @@ class WhatsAppChannel implements OutboxChannelContract
         }
 
         try {
-            $messagePayload = $this->buildMessagePayload($canonical, $payload);
-
-            if ($messagePayload === false) {
-                return ChannelSendResult::fail('WhatsApp template payload is invalid or incomplete.');
-            }
+            $messageData = $this->buildMessagePayload($payload);
 
             $response = Http::withToken($token)
                 ->timeout(15)
-                ->post("{$apiUrl}/{$phoneNumberId}/messages", $messagePayload);
+                ->post("{$apiUrl}/{$phoneNumberId}/messages", array_merge([
+                    'messaging_product' => 'whatsapp',
+                    'recipient_type' => 'individual',
+                    'to' => $canonical,
+                ], $messageData));
 
             if ($response->successful()) {
                 $json = $response->json();
@@ -98,114 +99,128 @@ class WhatsAppChannel implements OutboxChannelContract
         return (string) preg_replace('/^Bearer\s+/i', '', $clean);
     }
 
-    protected function buildMessagePayload(string $to, array $payload): array|false
+    private function buildMessagePayload(array $payload): array
     {
-        $basePayload = [
-            'messaging_product' => 'whatsapp',
-            'recipient_type' => 'individual',
-            'to' => $to,
+        $event = data_get($payload, 'event');
+
+        return match ($event) {
+            NotificationEvent::OTP->value => $this->buildOtpTemplate($payload),
+            NotificationEvent::NEW_BOOKING->value => $this->buildNewBookingTemplate($payload),
+            NotificationEvent::REPORT_READY->value => $this->buildReportReadyTemplate($payload),
+            default => $this->buildFreeFormMessage($payload),
+        };
+    }
+
+    private function buildOtpTemplate(array $payload): array
+    {
+        return [
+            'type' => 'template',
+            'template' => [
+                'name' => 'otp_msg',
+                'language' => [
+                    'code' => 'en_US',
+                ],
+                'components' => [
+                    [
+                        'type' => 'body',
+                        'parameters' => [
+                            ['type' => 'text', 'text' => data_get($payload, 'otp_code', '000000')],
+                            ['type' => 'text', 'text' => data_get($payload, 'action', 'CityCareLab')],
+                        ],
+                    ],
+                    [
+                        'type' => 'button',
+                        'sub_type' => 'url',
+                        'index' => 0,
+                        'parameters' => [
+                            [
+                                'type' => 'text',
+                                'text' => data_get($payload, 'otp_code', '000000'),
+                            ],
+                        ],
+                    ],
+                ],
+            ],
         ];
+    }
 
-        $templatePayload = $this->resolveTemplatePayload($payload);
+    private function buildNewBookingTemplate(array $payload): array
+    {
+        return [
+            'type' => 'template',
+            'template' => [
+                'name' => 'new_booking_notify',
+                'language' => [
+                    'code' => 'en_US',
+                ],
+                'components' => [
+                    [
+                        'type' => 'body',
+                        'parameters' => [
+                            ['type' => 'text', 'text' => data_get($payload, 'customer_name', 'Customer')],
+                            ['type' => 'text', 'text' => data_get($payload, 'case_id', 'N/A')],
+                        ],
+                    ],
+                    [
+                        'type' => 'button',
+                        'sub_type' => 'url',
+                        'index' => 0,
+                        'parameters' => [
+                            [
+                                'type' => 'text',
+                                'text' => data_get($payload, 'case_id', 'N/A'),
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+    }
 
-        if ($templatePayload === false) {
-            return false;
-        }
+    private function buildReportReadyTemplate(array $payload): array
+    {
+        return [
+            'type' => 'template',
+            'template' => [
+                'name' => 'report_ready_notify',
+                'language' => [
+                    'code' => 'en_US',
+                ],
+                'components' => [
+                    [
+                        'type' => 'body',
+                        'parameters' => [
+                            ['type' => 'text', 'text' => data_get($payload, 'customer_name', 'Customer')],
+                            ['type' => 'text', 'text' => data_get($payload, 'case_id', 'N/A')],
+                        ],
+                    ],
+                    [
+                        'type' => 'button',
+                        'sub_type' => 'url',
+                        'index' => 0,
+                        'parameters' => [
+                            [
+                                'type' => 'text',
+                                'text' => data_get($payload, 'case_id', 'N/A'),
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+    }
 
-        if ($templatePayload !== null) {
-            return array_merge($basePayload, $templatePayload);
-        }
+    private function buildFreeFormMessage(array $payload): array
+    {
+        $title = (string) data_get($payload, 'title', '');
+        $body = (string) data_get($payload, 'body', '');
 
-        $title = $this->resolveMessagePart($payload['title'] ?? null);
-        $body = $this->resolveMessagePart($payload['body'] ?? null);
-
-        if (! $title || ! $body) {
-            return false;
-        }
-
-        return array_merge($basePayload, [
+        return [
             'type' => 'text',
             'text' => [
                 'preview_url' => false,
-                'body' => "*{$title}*\n\n{$body}",
+                'body' => $title ? "*{$title}*\n{$body}" : $body,
             ],
-        ]);
-    }
-
-    protected function resolveTemplatePayload(array $payload): array|false|null
-    {
-        $template = $payload['template'] ?? null;
-
-        if (is_array($template) && ! empty($template)) {
-            if (! $this->isValidTemplateDefinition($template)) {
-                Log::warning('WhatsAppChannel: Invalid inline template payload structure.', [
-                    'has_name' => isset($template['name']),
-                    'has_language_code' => isset($template['language']['code']),
-                ]);
-
-                return false;
-            }
-
-            return [
-                'type' => 'template',
-                'template' => $template,
-            ];
-        }
-
-        $selector = $this->resolveTemplateSelector($payload);
-
-        if ($selector === null) {
-            return null;
-        }
-
-        $templates = $payload['templates'] ?? [];
-
-        if (! is_array($templates) || ! isset($templates[$selector]) || ! is_array($templates[$selector])) {
-            Log::warning('WhatsAppChannel: Template selector not found in payload.', [
-                'template_selector' => $selector,
-                'available_templates' => is_array($templates) ? array_keys($templates) : [],
-            ]);
-
-            return false;
-        }
-
-        if (! $this->isValidTemplateDefinition($templates[$selector])) {
-            Log::warning('WhatsAppChannel: Selected template has invalid structure.', [
-                'template_selector' => $selector,
-                'has_name' => isset($templates[$selector]['name']),
-                'has_language_code' => isset($templates[$selector]['language']['code']),
-            ]);
-
-            return false;
-        }
-
-        return [
-            'type' => 'template',
-            'template' => $templates[$selector],
         ];
-    }
-
-    protected function resolveTemplateSelector(array $payload): ?string
-    {
-        foreach (['event', 'template_name', 'template'] as $key) {
-            $value = $payload[$key] ?? null;
-
-            if (is_string($value) && trim($value) !== '') {
-                return trim($value);
-            }
-        }
-
-        return null;
-    }
-
-    protected function isValidTemplateDefinition(array $template): bool
-    {
-        $name = $template['name'] ?? null;
-        $languageCode = $template['language']['code'] ?? null;
-
-        return is_string($name)
-            && trim($name) !== ''
-            && is_string($languageCode)
-            && trim($languageCode) !== '';
     }
 }

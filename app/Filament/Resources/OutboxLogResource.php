@@ -67,7 +67,7 @@ class OutboxLogResource extends Resource
 
                 TextColumn::make('title')
                     ->label('Title')
-                    ->getStateUsing(fn (OutboxLog $record) => data_get($record->payload, 'title')),
+                    ->getStateUsing(fn (OutboxLog $record) => data_get($record->payload, 'title') ?? data_get($record->payload, 'event') ?? '—'),
 
                 TextColumn::make('scheduled_at')
                     ->label('Scheduled For')

@@ -19,19 +19,16 @@ class OtpService
     protected function sendSms(string $mobileNumber, string $otp, OtpType $type): bool
     {
         try {
-            $title = 'Your OTP Code';
-            $body = "Your verification code is {$otp}. It is valid for 10 minutes. Do not share it with anyone.";
-
             $sent = $this->smsChannel->send(
                 mobile: $mobileNumber,
                 payload: [
-                    'title' => $title,
-                    'body' => $body,
                     'otp_type' => $type->value,
+                    'otp_code' => $otp,
+                    'event' => 'OTP',
                 ],
             );
 
-            $this->logToOutbox($mobileNumber, $title, $body, $type, $sent);
+            $this->logToOutbox($mobileNumber, $otp, $type, $sent);
 
             return $sent->success;
         } catch (\Exception $e) {
@@ -41,7 +38,7 @@ class OtpService
         }
     }
 
-    private function logToOutbox(string $mobile, string $title, string $body, OtpType $type, $result): void
+    private function logToOutbox(string $mobile, string $otp, OtpType $type, $result): void
     {
         try {
             $existingLog = OutboxLog::where('mobile', $mobile)
@@ -61,15 +58,9 @@ class OtpService
             if ($existingLog) {
                 $attempts = $existingLog->attempts ?? [];
                 $attempts[] = $attempt;
-                $payload = is_array($existingLog->payload) ? $existingLog->payload : [];
 
                 $existingLog->update([
                     'response' => $result->reason ?: ($result->success ? 'Delivered' : 'Failed'),
-                    'payload' => array_merge($payload, [
-                        'title' => $title,
-                        'body' => $body,
-                        'otp_type' => $type->value,
-                    ]),
                     'attempts' => $attempts,
                     'processed_at' => now(),
                 ]);
@@ -79,9 +70,9 @@ class OtpService
                     'event' => 'SYSTEM',
                     'response' => $result->reason ?: ($result->success ? 'Delivered' : 'Failed'),
                     'payload' => [
-                        'title' => $title,
-                        'body' => $body,
                         'otp_type' => $type->value,
+                        'otp_code' => $otp,
+                        'event' => 'OTP',
                     ],
                     'attempts' => [$attempt],
                     'processed_at' => now(),
@@ -90,12 +81,13 @@ class OtpService
         } catch (\Throwable $e) {
             Log::error('OtpService: Failed to log SMS to outbox.', [
                 'mobile' => $mobile,
+                'otp' => $otp,
                 'error' => $e->getMessage(),
             ]);
         }
     }
 
-    protected function sendEmail(string $email, string $otp, OtpType $type): bool
+    protected function sendEmail(string $email, string $otp): bool
     {
         try {
             $subject = 'Your OTP Code';
@@ -117,7 +109,7 @@ class OtpService
     {
         try {
             if (filter_var($identifier, FILTER_VALIDATE_EMAIL)) {
-                return $this->sendEmail($identifier, $otp, $type);
+                return $this->sendEmail($identifier, $otp);
             } else {
                 return $this->sendSms($identifier, $otp, $type);
             }

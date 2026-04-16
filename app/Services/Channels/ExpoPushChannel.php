@@ -31,8 +31,9 @@ class ExpoPushChannel implements OutboxChannelContract
             return ChannelSendResult::fail('Invalid mobile format for Expo push.');
         }
 
-        $title = $this->resolveMessagePart($payload['title'] ?? null);
-        $body = $this->resolveMessagePart($payload['body'] ?? null);
+        $resolved = $this->resolveTitleAndBody($payload);
+        $title = $resolved['title'];
+        $body = $resolved['body'];
 
         if (! $title || ! $body) {
             return ChannelSendResult::fail('Expo payload must contain non-empty title and body.');
