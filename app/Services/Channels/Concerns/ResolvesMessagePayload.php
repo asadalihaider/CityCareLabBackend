@@ -46,32 +46,32 @@ trait ResolvesMessagePayload
     private function buildOtpMessage(array $payload): array
     {
         $otpCode = (string) data_get($payload, 'otp_code', '000000');
-        $action = (string) data_get($payload, 'action', 'CityCareLab');
+        $action = (string) data_get($payload, 'action', 'verification');
 
         return [
             'title' => 'Verification Code',
-            'body' => "Your {$action} verification code is {$otpCode}. It is valid for 10 minutes. Do not share it with anyone.",
+            'body' => "Your CityCareLab {$action} code is {$otpCode}. It expires in 5 minutes. Do not share this code.",
         ];
     }
 
     private function buildNewBookingMessage(array $payload): array
     {
-        $customerName = (string) data_get($payload, 'customer_name', 'Valued Customer');
+        $customerName = (string) data_get($payload, 'customer_name', 'there');
         $caseId = (string) data_get($payload, 'case_id', '');
 
         return [
             'title' => 'Booking Confirmed',
-            'body' => "Hi {$customerName}, your booking {$caseId} has been confirmed.",
+            'body' => "Hi {$customerName}, your booking {$caseId} has been confirmed. Thanks for choosing CityCareLab!",
         ];
     }
 
     private function buildReportReadyMessage(array $payload): array
     {
-        $customerName = (string) data_get($payload, 'customer_name', 'Valued Customer');
+        $customerName = (string) data_get($payload, 'customer_name', 'there');
 
         return [
             'title' => 'Report Ready',
-            'body' => "Hi {$customerName}, your lab report is ready for download.",
+            'body' => "Hi {$customerName}, your CityCareLab report is ready for download.",
         ];
     }
 }
