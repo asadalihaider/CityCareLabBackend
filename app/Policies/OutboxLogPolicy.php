@@ -2,11 +2,11 @@
 
 namespace App\Policies;
 
+use App\Models\OutboxLog;
 use App\Models\User;
-use App\Models\ExpoNotification;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
-class ExpoNotificationPolicy
+class OutboxLogPolicy
 {
     use HandlesAuthorization;
 
@@ -15,15 +15,15 @@ class ExpoNotificationPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_notification');
+        return $user->can('view_any_outbox::log');
     }
 
     /**
      * Determine whether the user can view the model.
      */
-    public function view(User $user, ExpoNotification $expoNotification): bool
+    public function view(User $user, OutboxLog $outboxLog): bool
     {
-        return $user->can('view_notification');
+        return $user->can('view_outbox::log');
     }
 
     /**
@@ -31,23 +31,23 @@ class ExpoNotificationPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_notification');
+        return $user->can('create_outbox::log');
     }
 
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User $user, ExpoNotification $expoNotification): bool
+    public function update(User $user, OutboxLog $outboxLog): bool
     {
-        return $user->can('update_notification');
+        return $user->can('update_outbox::log');
     }
 
     /**
      * Determine whether the user can delete the model.
      */
-    public function delete(User $user, ExpoNotification $expoNotification): bool
+    public function delete(User $user, OutboxLog $outboxLog): bool
     {
-        return $user->can('delete_notification');
+        return $user->can('delete_outbox::log');
     }
 
     /**
@@ -55,15 +55,15 @@ class ExpoNotificationPolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_notification');
+        return $user->can('delete_any_outbox::log');
     }
 
     /**
      * Determine whether the user can permanently delete.
      */
-    public function forceDelete(User $user, ExpoNotification $expoNotification): bool
+    public function forceDelete(User $user, OutboxLog $outboxLog): bool
     {
-        return $user->can('force_delete_notification');
+        return $user->can('force_delete_outbox::log');
     }
 
     /**
@@ -71,15 +71,15 @@ class ExpoNotificationPolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('force_delete_any_notification');
+        return $user->can('force_delete_any_outbox::log');
     }
 
     /**
      * Determine whether the user can restore.
      */
-    public function restore(User $user, ExpoNotification $expoNotification): bool
+    public function restore(User $user, OutboxLog $outboxLog): bool
     {
-        return $user->can('restore_notification');
+        return $user->can('restore_outbox::log');
     }
 
     /**
@@ -87,15 +87,15 @@ class ExpoNotificationPolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_notification');
+        return $user->can('restore_any_outbox::log');
     }
 
     /**
      * Determine whether the user can replicate.
      */
-    public function replicate(User $user, ExpoNotification $expoNotification): bool
+    public function replicate(User $user, OutboxLog $outboxLog): bool
     {
-        return $user->can('replicate_notification');
+        return $user->can('replicate_outbox::log');
     }
 
     /**
@@ -103,6 +103,6 @@ class ExpoNotificationPolicy
      */
     public function reorder(User $user): bool
     {
-        return $user->can('reorder_notification');
+        return $user->can('reorder_outbox::log');
     }
 }

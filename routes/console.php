@@ -8,5 +8,5 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Schedule::command('expo:notifications:send')->everySixHours();
-Schedule::command('expo:tickets:check')->monthly();
+Schedule::command('otp:clean-expired')->monthly();
+Schedule::command('outbox:process')->everyMinute()->withoutOverlapping(5);

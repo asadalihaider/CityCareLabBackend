@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('serial_prefix', 10)->default('CARD');
             $table->string('image')->nullable();
             $table->decimal('price', 10, 2)->default(0.00);
+            $table->unsignedTinyInteger('max_members')->default(1);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });

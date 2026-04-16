@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Requests\Customer\ForgotPasswordRequest;
 use App\Http\Requests\Customer\LoginRequest;
 use App\Http\Requests\Customer\RegistrationRequest;
+use App\Http\Requests\Customer\ResendOtpRequest;
 use App\Http\Requests\Customer\ResetPasswordRequest;
 use App\Http\Requests\Customer\SetExpoPushTokenRequest;
 use App\Http\Requests\Customer\UpdateProfileRequest;
@@ -18,7 +19,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rule;
 
 class CustomerAuthController extends BaseApiController
 {
@@ -87,7 +87,7 @@ class CustomerAuthController extends BaseApiController
             $data = [
                 'id' => $customer->id,
                 'name' => $customer->name,
-                'mobile_number' => $customer->mobile_number,
+                'mobile_number' => $customer->mobile_number_local,
                 'email' => $customer->email,
                 'city' => $customer->city ? [
                     'id' => $customer->city->id,
@@ -137,7 +137,7 @@ class CustomerAuthController extends BaseApiController
             $data = [
                 'id' => $customer->id,
                 'name' => $customer->name,
-                'mobile_number' => $customer->mobile_number,
+                'mobile_number' => $customer->mobile_number_local,
                 'email' => $customer->email,
                 'city' => $customer->city ? [
                     'id' => $customer->city->id,
@@ -226,7 +226,7 @@ class CustomerAuthController extends BaseApiController
 
                 case OtpType::FORGOT_PASSWORD:
                     return $this->successResponse([
-                        'mobile_number' => $customer->mobile_number,
+                        'mobile_number' => $customer->mobile_number_local,
                         'otp_verified' => true,
                         'message' => 'OTP verified. You can now reset your password.',
                     ], 'OTP verified successfully');
@@ -237,27 +237,19 @@ class CustomerAuthController extends BaseApiController
         }, 'OTP verification failed');
     }
 
-    public function resendOtp(Request $request): JsonResponse
+    public function resendOtp(ResendOtpRequest $request): JsonResponse
     {
         return $this->executeWithExceptionHandling(function () use ($request) {
-            $request->validate([
-                'mobile_number' => [
-                    'required',
-                    'string',
-                    'regex:/^(?:\+92|0)3[0-9]{9}$/',
-                ],
-                'type' => ['required', Rule::enum(OtpType::class)],
-            ]);
+            $normalizedMobile = $request->mobile_number;
 
             $otpType = OtpType::from($request->type);
 
-            // Check if customer exists (phone number must be in database)
-            $customer = Customer::where('mobile_number', $request->mobile_number)->first();
+            $customer = Customer::where('mobile_number', $normalizedMobile)->first();
             if (! $customer) {
                 return $this->notFoundResponse('Customer not found. Please register first.');
             }
 
-            $otp = $this->otpService->createAndSendOtp($request->mobile_number, $otpType);
+            $otp = $this->otpService->createAndSendOtp($normalizedMobile, $otpType);
 
             if (! $otp) {
                 return $this->errorResponse('Failed to send OTP. Please try again.');
