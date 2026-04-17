@@ -30,7 +30,6 @@ class CustomerResource extends Resource
     {
         return $form
             ->schema([
-
                 TextInput::make('name')
                     ->label(__('Name'))
                     ->required()
