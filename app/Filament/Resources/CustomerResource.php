@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\Enum\CustomerStatus;
 use App\Models\Enum\Gender;
 use App\Models\OperatingCity;
+use App\Support\PakistanMobile;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
@@ -37,10 +38,33 @@ class CustomerResource extends Resource
                 TextInput::make('mobile_number')
                     ->label(__('Mobile Number'))
                     ->required()
-                    ->placeholder('Enter customer mobile number'),
+                    ->placeholder('Enter customer mobile number (e.g., 03001234567 or +923001234567)')
+                    ->helperText('Valid formats: 0300123456, 923001234567, +923001234567, 3001234567')
+                    ->afterStateHydrated(function (TextInput $component, ?string $state): void {
+                        if ($state && $state !== '') {
+                            $component->state(PakistanMobile::toLocal($state));
+                        }
+                    })
+                    ->dehydrateStateUsing(function (?string $state): ?string {
+                        if ($state && $state !== '') {
+                            $normalized = PakistanMobile::normalize($state);
+
+                            return $normalized ?? $state;
+                        }
+
+                        return $state;
+                    })
+                    ->regex('/^((\+92)?(92)?(0)?)(3)([0-9]{9})$/')
+                    ->validationMessages([
+                        'regex' => 'The :attribute must be a valid Pakistani mobile number.',
+                    ])
+                    ->unique(ignoreRecord: true),
                 TextInput::make('email')
                     ->label(__('Email'))
+                    ->email()
+                    ->unique(ignoreRecord: true)
                     ->placeholder('Enter customer email'),
+
                 TextInput::make('password')
                     ->label(__('Password'))
                     ->required()
@@ -87,9 +111,11 @@ class CustomerResource extends Resource
                 TextColumn::make('name')
                     ->label(__('Name'))
                     ->searchable(),
-                TextColumn::make('mobile_number')
+                TextColumn::make('mobile_number_local')
                     ->label(__('Mobile'))
-                    ->searchable(),
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->where('mobile_number', 'LIKE', "%{$search}%");
+                    }),
                 TextColumn::make('email')
                     ->label(__('Email'))
                     ->searchable(),
