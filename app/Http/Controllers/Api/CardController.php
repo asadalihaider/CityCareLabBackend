@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Requests\Card\ActivateCardRequest;
 use App\Http\Requests\Card\UpdateCardRequest;
-use App\Models\Customer;
 use App\Models\CustomerCard;
 use App\Models\Enum\PhysicalCardStatus;
 use App\Models\PhysicalCard;
@@ -15,6 +14,7 @@ class CardController extends BaseApiController
     {
         return $this->executeWithExceptionHandling(function () use ($request) {
             $customer = $request->user();
+            $validated = $request->validated();
 
             if ($customer->activeCard) {
                 return $this->errorResponse(
@@ -23,8 +23,8 @@ class CardController extends BaseApiController
                 );
             }
 
-            $physicalCard = PhysicalCard::where('serial_number', $request->identifier)
-                ->where('expiry_date', $request->expiry_date)
+            $physicalCard = PhysicalCard::where('serial_number', $validated['identifier'])
+                ->where('expiry_date', $validated['expiry_date'])
                 ->first();
 
             if (! $physicalCard) {
@@ -67,7 +67,6 @@ class CardController extends BaseApiController
             $customerCard = CustomerCard::activateCard($customer->id, $physicalCard->id);
 
             return $this->successResponse(['card' => $customerCard->card_details], $message);
-
         }, 'Failed to activate card. Please try again.');
     }
 
@@ -75,8 +74,9 @@ class CardController extends BaseApiController
     {
         return $this->executeWithExceptionHandling(function () use ($request) {
             $customer = $request->user();
-            $cardId = $request->card_id;
-            $isActive = $request->is_active;
+            $validated = $request->validated();
+            $cardId = $validated['card_id'];
+            $isActive = $validated['is_active'];
 
             // Find the customer's card
             $customerCard = CustomerCard::whereHas('physicalCard', function ($query) use ($cardId) {
