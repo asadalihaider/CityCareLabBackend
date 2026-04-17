@@ -11,14 +11,14 @@ class CheckApiKey
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $key = $request->header('X-API-KEY');
+        $key = $request->header('Api-Key');
 
         if (! $key) {
             return response()->json([
                 'success' => false,
-                'message' => 'API key is required. Provide it via the X-API-KEY header.',
+                'message' => 'API key is required. Provide it via the Api-Key header.',
                 'timestamp' => now()->toISOString(),
-            ], Response::HTTP_UNAUTHORIZED);
+            ], Response::HTTP_UNAUTHORIZED)->header('Cache-Control', 'private');
         }
 
         $client = ApiClient::findByKey($key);
@@ -28,11 +28,11 @@ class CheckApiKey
                 'success' => false,
                 'message' => 'Invalid or inactive API key.',
                 'timestamp' => now()->toISOString(),
-            ], Response::HTTP_UNAUTHORIZED);
+            ], Response::HTTP_UNAUTHORIZED)->header('Cache-Control', 'private');
         }
 
         $request->attributes->set('api_client', $client);
 
-        return $next($request);
+        return $next($request)->header('Cache-Control', 'private');
     }
 }

@@ -84,7 +84,10 @@ class CreateNotification extends Page
                             ->label('Mobile Number')
                             ->placeholder('923001234567')
                             ->helperText('Include country code, digits only (e.g. 923001234567)')
-                            ->tel()
+                            ->regex('/^(923)([0-9]{9})$/')
+                            ->validationMessages([
+                                'regex' => 'The :attribute must be a valid Pakistani mobile number.',
+                            ])
                             ->visible(fn (Get $get) => $get('recipient_type') === 'manual')
                             ->required(fn (Get $get) => $get('recipient_type') === 'manual'),
                     ])

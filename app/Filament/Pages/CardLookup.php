@@ -116,7 +116,7 @@ class CardLookup extends Page implements HasForms
                                         ->copyable()
                                         ->placeholder('N/A'),
 
-                                    TextEntry::make('customerCard.customer.mobile_number')
+                                    TextEntry::make('customerCard.customer.mobile_number_local')
                                         ->label('Mobile Number')
                                         ->icon('heroicon-o-phone')
                                         ->copyable(),

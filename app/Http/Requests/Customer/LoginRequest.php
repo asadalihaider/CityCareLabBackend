@@ -17,7 +17,18 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'login' => ['required', 'string'],
+            'login' => [
+                'required',
+                'string',
+                function ($attribute, $value, $fail) {
+                    $isValidEmail = filter_var($value, FILTER_VALIDATE_EMAIL);
+                    $isValidPhone = preg_match('/^923[0-9]{9}$/', $value);
+
+                    if (! $isValidEmail && ! $isValidPhone) {
+                        $fail('Please enter a valid email address or Pakistani mobile number (e.g., user@example.com, 03001234567, or 923001234567).');
+                    }
+                },
+            ],
             'password' => ['required', 'string'],
         ];
     }

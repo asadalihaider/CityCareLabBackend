@@ -32,10 +32,11 @@ class CustomerAuthController extends BaseApiController
     public function register(RegistrationRequest $request): JsonResponse
     {
         return $this->executeWithExceptionHandling(function () use ($request) {
+            $validated = $request->validated();
             $customer = Customer::create([
-                'name' => $request->name,
-                'mobile_number' => $request->mobile_number,
-                'password' => Hash::make($request->password),
+                'name' => $validated['name'],
+                'mobile_number' => $validated['mobile_number'],
+                'password' => Hash::make($validated['password']),
             ]);
 
             $otp = $this->otpService->createAndSendOtp(
@@ -52,7 +53,9 @@ class CustomerAuthController extends BaseApiController
     public function login(LoginRequest $request): JsonResponse
     {
         return $this->executeWithExceptionHandling(function () use ($request) {
-            $login = $request->login;
+            // Get validated/normalized data explicitly via validated()
+            $validated = $request->validated();
+            $login = $validated['login'];
             $loginField = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'mobile_number';
 
             $customer = Customer::with('city')->where($loginField, $login)->first();
@@ -194,11 +197,12 @@ class CustomerAuthController extends BaseApiController
     public function verifyOtp(VerifyOtpRequest $request): JsonResponse
     {
         return $this->executeWithExceptionHandling(function () use ($request) {
-            $otpType = OtpType::from($request->type);
+            $validated = $request->validated();
+            $otpType = OtpType::from($validated['type']);
 
             $result = $this->otpService->verifyOtp(
-                $request->mobile_number,
-                $request->otp,
+                $validated['mobile_number'],
+                $validated['otp'],
                 $otpType
             );
 
@@ -206,7 +210,7 @@ class CustomerAuthController extends BaseApiController
                 return $this->errorResponse($result['message'], 400);
             }
 
-            $customer = Customer::where('mobile_number', $request->mobile_number)->first();
+            $customer = Customer::where('mobile_number', $validated['mobile_number'])->first();
 
             if (! $customer) {
                 return $this->notFoundResponse('Customer not found');
@@ -230,6 +234,7 @@ class CustomerAuthController extends BaseApiController
                         'otp_verified' => true,
                         'message' => 'OTP verified. You can now reset your password.',
                     ], 'OTP verified successfully');
+                    break;
 
                 default:
                     return $this->errorResponse('Invalid OTP type', 400);
@@ -240,9 +245,10 @@ class CustomerAuthController extends BaseApiController
     public function resendOtp(ResendOtpRequest $request): JsonResponse
     {
         return $this->executeWithExceptionHandling(function () use ($request) {
-            $normalizedMobile = $request->mobile_number;
+            $validated = $request->validated();
+            $normalizedMobile = $validated['mobile_number'];
 
-            $otpType = OtpType::from($request->type);
+            $otpType = OtpType::from($validated['type']);
 
             $customer = Customer::where('mobile_number', $normalizedMobile)->first();
             if (! $customer) {
@@ -262,14 +268,17 @@ class CustomerAuthController extends BaseApiController
     public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
     {
         return $this->executeWithExceptionHandling(function () use ($request) {
-            $customer = Customer::where('mobile_number', $request->mobile_number)->first();
+            $validated = $request->validated();
+            $mobile = $validated['mobile_number'];
+
+            $customer = Customer::where('mobile_number', $mobile)->first();
 
             if (! $customer) {
                 return $this->notFoundResponse('No account found with this mobile number.');
             }
 
             $otp = $this->otpService->createAndSendOtp(
-                $request->mobile_number,
+                $mobile,
                 OtpType::FORGOT_PASSWORD
             );
 
@@ -284,9 +293,12 @@ class CustomerAuthController extends BaseApiController
     public function resetPassword(ResetPasswordRequest $request): JsonResponse
     {
         return $this->executeWithExceptionHandling(function () use ($request) {
+            $validated = $request->validated();
+            $mobile = $validated['mobile_number'];
+
             $result = $this->otpService->hasVerifiedOtp(
-                $request->mobile_number,
-                $request->otp,
+                $mobile,
+                $validated['otp'],
                 OtpType::FORGOT_PASSWORD
             );
 
@@ -294,14 +306,14 @@ class CustomerAuthController extends BaseApiController
                 return $this->errorResponse($result['message'], 400);
             }
 
-            $customer = Customer::where('mobile_number', $request->mobile_number)->first();
+            $customer = Customer::where('mobile_number', $mobile)->first();
 
             if (! $customer) {
                 return $this->notFoundResponse('Customer not found');
             }
 
             $customer->update([
-                'password' => Hash::make($request->password),
+                'password' => Hash::make($validated['password']),
             ]);
 
             $customer->tokens()->delete();
@@ -313,8 +325,9 @@ class CustomerAuthController extends BaseApiController
     public function setExpoPushToken(SetExpoPushTokenRequest $request): JsonResponse
     {
         return $this->executeWithExceptionHandling(function () use ($request) {
-            $token = $request->token;
-            $customerId = $request->customer_id ?? null;
+            $validated = $request->validated();
+            $token = $validated['token'];
+            $customerId = $validated['customer_id'] ?? null;
 
             ExpoToken::createOrUpdate($token, $customerId);
 

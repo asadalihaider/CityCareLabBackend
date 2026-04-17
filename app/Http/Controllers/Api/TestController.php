@@ -77,7 +77,7 @@ class TestController extends BaseApiController
             /** @var \App\Models\Customer $customer */
             $customer = auth('sanctum')->user();
 
-            $patientData = $pathCareSoftService->getPatientTestHistory($customer->mobile_number);
+            $patientData = $pathCareSoftService->getPatientTestHistory($customer->mobile_number_local);
 
             return $this->collectionResponse($patientData, 'Test history retrieved successfully');
 
